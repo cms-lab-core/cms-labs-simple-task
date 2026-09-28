@@ -69,6 +69,7 @@ for document in [topology, template]:
     assert "r1:eth1" in document and "s1:eth1" in document
     assert "cms-labs-simple-task-node:latest" in document
 assert "name: $NAME" in template and "namespace: $NAME" in template
+assert "apiVersion: c9s.run/v1alpha1" in template
 assert template.count("ttyd-shell: /bin/bash") == 2
 demo_launcher = (ROOT / "scripts" / "demo").read_text(encoding="utf-8")
 assert "oci://ghcr.io/maintainer64/cms-labs-clabernetes/clabernetes" in demo_launcher

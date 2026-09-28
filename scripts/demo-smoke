@@ -78,7 +78,7 @@ workspace_exchange_status=$(curl --noproxy '*' --silent --show-error \
   --cookie-jar "$cookie_jar" --dump-header "$response_headers" \
   --output /dev/null --write-out '%{http_code}' "$base_url$workspace_grant")
 test "$workspace_exchange_status" = 303 || fail "Jupyter grant exchange returned $workspace_exchange_status"
-workspace_location=$(awk '/^Location:/ {sub(/\r$/, "", $2); print $2}' "$response_headers")
+workspace_location=$(awk 'tolower($1) == "location:" {sub(/\r$/, "", $2); print $2}' "$response_headers")
 workspace_cookie=$(awk '$6 == "clabgate_workspace" {print $7}' "$cookie_jar")
 test -n "$workspace_location" || fail "Jupyter grant did not provide a redirect"
 test -n "$workspace_cookie" || fail "Jupyter grant did not provide a workspace cookie"
@@ -96,7 +96,7 @@ terminal_exchange_status=$(curl --noproxy '*' --silent --show-error \
   --cookie-jar "$cookie_jar" --dump-header "$response_headers" \
   --output /dev/null --write-out '%{http_code}' "$base_url$terminal_grant")
 test "$terminal_exchange_status" = 303 || fail "terminal grant exchange returned $terminal_exchange_status"
-terminal_location=$(awk '/^Location:/ {sub(/\r$/, "", $2); print $2}' "$response_headers")
+terminal_location=$(awk 'tolower($1) == "location:" {sub(/\r$/, "", $2); print $2}' "$response_headers")
 workspace_cookie=$(awk '$6 == "clabgate_workspace" {print $7}' "$cookie_jar")
 test -n "$terminal_location" || fail "terminal grant did not provide a redirect"
 terminal_page=$(curl --noproxy '*' --fail-with-body --silent --show-error \

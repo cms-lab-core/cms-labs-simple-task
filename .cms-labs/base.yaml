@@ -14,7 +14,7 @@ kind: ClusterRole
 metadata:
   name: clabgate-demo
 rules:
-  - apiGroups: ["clabernetes.containerlab.dev"]
+  - apiGroups: ["c9s.run"]
     resources: ["topologies"]
     verbs: ["get", "list", "create", "update", "patch", "delete"]
   - apiGroups: ["apps"]

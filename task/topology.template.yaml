@@ -1,5 +1,5 @@
 # $NAME is replaced by Clabgate with the immutable session namespace.
-apiVersion: clabernetes.containerlab.dev/v1alpha1
+apiVersion: c9s.run/v1alpha1
 kind: Topology
 metadata:
   name: $NAME
