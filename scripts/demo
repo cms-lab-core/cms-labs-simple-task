@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+tool_bin_dir="$repo_root/.cache/cms-labs/bin"
+mkdir -p "$tool_bin_dir"
+export PATH="$tool_bin_dir:$PATH"
+cluster_name=${CMS_LABS_CLUSTER_NAME:-cms-labs-demo}
+context="kind-${cluster_name}"
+namespace=cms-labs-system
+attempt_id=550e8400-e29b-41d4-a716-446655440000
+frontend_port=${CMS_LABS_FRONTEND_PORT:-18080}
+kind_version=v0.33.0
+kubectl_version=v1.33.12
+helm_version=v3.19.0
+clabernetes_version=0.0.0
+
+install_binary() {
+  local name=$1 url=$2 destination="$tool_bin_dir/$1"
+  if command -v "$name" >/dev/null 2>&1; then return; fi
+  printf 'Installing %s...\n' "$name"
+  curl --fail --silent --show-error --location "$url" --output "$destination"
+  chmod 0755 "$destination"
+}
+
+install_tools() {
+  local machine architecture system
+  machine=$(uname -m)
+  case "$machine" in
+    x86_64) architecture=amd64 ;;
+    aarch64|arm64) architecture=arm64 ;;
+    *) printf 'Unsupported architecture: %s\n' "$machine" >&2; exit 1 ;;
+  esac
+  case "$(uname -s)" in
+    Linux) system=linux ;;
+    Darwin) system=darwin ;;
+    *) printf 'Unsupported operating system: %s\n' "$(uname -s)" >&2; exit 1 ;;
+  esac
+  install_binary kind "https://kind.sigs.k8s.io/dl/${kind_version}/kind-${system}-${architecture}"
+  install_binary kubectl "https://dl.k8s.io/release/${kubectl_version}/bin/${system}/${architecture}/kubectl"
+  if ! command -v helm >/dev/null 2>&1; then
+    local tools_dir archive
+    tools_dir=$(mktemp -d)
+    archive="$tools_dir/helm.tar.gz"
+    curl --fail --silent --show-error --location \
+      "https://get.helm.sh/helm-${helm_version}-${system}-${architecture}.tar.gz" --output "$archive"
+    tar -xzf "$archive" -C "$tools_dir"
+    install -m 0755 "$tools_dir/${system}-${architecture}/helm" "$tool_bin_dir/helm"
+    rm -rf "$tools_dir"
+  fi
+}
+
+create_cluster() {
+  local clusters
+  clusters=$(kind get clusters 2>/dev/null || true)
+  if grep -Fxq "$cluster_name" <<<"$clusters"; then return; fi
+  if [[ ! "$frontend_port" =~ ^[0-9]+$ ]] || ((frontend_port < 1024 || frontend_port > 65535)); then
+    printf 'CMS_LABS_FRONTEND_PORT must be an integer between 1024 and 65535\n' >&2
+    exit 2
+  fi
+  local kind_config
+  kind_config=$(mktemp)
+  sed "s/hostPort: 18080/hostPort: ${frontend_port}/" "$repo_root/.cms-labs/kind.yaml" >"$kind_config"
+  # A loopback proxy copied into the kind node points at the node itself, not at the host.
+  if ! env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+    kind create cluster --name "$cluster_name" --config "$kind_config" --image kindest/node:v1.33.12; then
+    rm -f "$kind_config"
+    return 1
+  fi
+  rm -f "$kind_config"
+}
+
+install_clabernetes() {
+  # The personal OCI chart pins both manager.image and the current
+  # globalConfig.deployment.launcher.image; do not replace them with a stale mutable tag.
+  helm upgrade --install clabernetes oci://ghcr.io/maintainer64/cms-labs-clabernetes/clabernetes \
+    --version "$clabernetes_version" --namespace c9s --create-namespace --kube-context "$context" \
+    --set globalConfig.mergeMode=overwrite \
+    --set ui.enabled=false
+  kubectl --context "$context" wait --for=condition=Available deployment --all -n c9s --timeout=5m
+}
+
+ensure_jwt_secret() {
+  if kubectl --context "$context" -n "$namespace" get secret cms-demo-jwt >/dev/null 2>&1; then return; fi
+  local key_dir
+  key_dir=$(mktemp -d)
+  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$key_dir/private.pem" >/dev/null 2>&1
+  openssl pkey -in "$key_dir/private.pem" -pubout -out "$key_dir/public.pem" >/dev/null 2>&1
+  kubectl --context "$context" -n "$namespace" create secret generic cms-demo-jwt \
+    --from-file=private.pem="$key_dir/private.pem" --from-file=public.pem="$key_dir/public.pem"
+  rm -rf "$key_dir"
+}
+
+up() {
+  install_tools
+  create_cluster
+  install_clabernetes
+  kubectl --context "$context" apply -f "$repo_root/.cms-labs/base.yaml"
+  kubectl --context "$context" -n "$namespace" rollout status deployment/mysql --timeout=5m
+  ensure_jwt_secret
+  kubectl --context "$context" -n "$namespace" delete job cms-demo-seed --ignore-not-found
+  kubectl --context "$context" apply -f "$repo_root/.cms-labs/seed.yaml"
+  if ! kubectl --context "$context" -n "$namespace" wait --for=condition=complete job/cms-demo-seed --timeout=5m; then
+    kubectl --context "$context" -n "$namespace" logs job/cms-demo-seed --all-containers >&2 || true
+    exit 1
+  fi
+  kubectl --context "$context" apply -f "$repo_root/.cms-labs/app.yaml"
+  kubectl --context "$context" -n "$namespace" rollout status deployment/backend --timeout=5m
+  kubectl --context "$context" -n "$namespace" rollout status deployment/clabgate --timeout=5m
+  kubectl --context "$context" -n "$namespace" rollout status deployment/frontend --timeout=5m
+  printf '\nCMS Labs demo is ready: http://127.0.0.1:%s/session/%s\n' "$frontend_port" "$attempt_id"
+  printf 'Login: admin@admin.com / admin\n'
+}
+
+status() {
+  kubectl --context "$context" get pods -A
+  kubectl --context "$context" get topology -A
+}
+
+down() {
+  kind delete cluster --name "$cluster_name"
+}
+
+case "${1:-up}" in
+  up|ensure) up ;;
+  status) status ;;
+  down) down ;;
+  open) printf 'http://127.0.0.1:%s/session/%s\n' "$frontend_port" "$attempt_id" ;;
+  *) printf 'Usage: %s {up|ensure|status|open|down}\n' "$0" >&2; exit 2 ;;
+esac

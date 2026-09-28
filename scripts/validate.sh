@@ -6,6 +6,6 @@ cd "$repo_root"
 
 python3 tests/validate_repository.py
 
-for script in .devcontainer/post-create.sh .devcontainer/post-start.sh scripts/lab scripts/validate.sh task/node/entrypoint.sh; do
+for script in .devcontainer/post-create.sh .devcontainer/post-start.sh scripts/demo scripts/demo-smoke scripts/lab scripts/validate.sh task/node/entrypoint.sh; do
   bash -n "$script"
 done

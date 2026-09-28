@@ -7,10 +7,10 @@
     "memory": "8gb",
     "storage": "32gb"
   },
-  "forwardPorts": [8888],
+  "forwardPorts": [18080],
   "portsAttributes": {
-    "8888": {
-      "label": "CMS Labs JupyterLab",
+    "18080": {
+      "label": "CMS Labs full demo",
       "onAutoForward": "openBrowser"
     }
   },

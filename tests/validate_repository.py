@@ -15,6 +15,12 @@ required = [
     ROOT / "catalog.json",
     ROOT / ".devcontainer" / "devcontainer.json",
     ROOT / "scripts" / "lab",
+    ROOT / "scripts" / "demo",
+    ROOT / "scripts" / "demo-smoke",
+    ROOT / ".cms-labs" / "kind.yaml",
+    ROOT / ".cms-labs" / "base.yaml",
+    ROOT / ".cms-labs" / "seed.yaml",
+    ROOT / ".cms-labs" / "app.yaml",
     LAB / "README.md",
     LAB / "task.ipynb",
     LAB / "lab.json",
@@ -43,7 +49,7 @@ assert catalog_lab["metadataPath"] == "task/lab.json"
 
 devcontainer = json.loads((ROOT / ".devcontainer" / "devcontainer.json").read_text(encoding="utf-8"))
 assert devcontainer["image"] == "ghcr.io/srl-labs/containerlab/devcontainer-dind-slim:latest"
-assert 8888 in devcontainer["forwardPorts"]
+assert 18080 in devcontainer["forwardPorts"]
 assert devcontainer["postCreateCommand"] == "bash .devcontainer/post-create.sh"
 
 metadata = json.loads((LAB / "lab.json").read_text(encoding="utf-8"))
@@ -63,6 +69,13 @@ for document in [topology, template]:
     assert "r1:eth1" in document and "s1:eth1" in document
     assert "cms-labs-simple-task-node:latest" in document
 assert "name: $NAME" in template and "namespace: $NAME" in template
+assert template.count("ttyd-shell: /bin/bash") == 2
+demo_launcher = (ROOT / "scripts" / "demo").read_text(encoding="utf-8")
+assert "oci://ghcr.io/maintainer64/cms-labs-clabernetes/clabernetes" in demo_launcher
+assert "globalConfig.deployment.launcher.image" in demo_launcher
+assert "launcherImage" not in demo_launcher
+assert "clabernetes-launcher:dev-latest" not in demo_launcher
+assert "CMS_LABS_FRONTEND_PORT" in demo_launcher
 yaml_files = sorted(path.name for path in LAB.rglob("*") if path.suffix.lower() in {".yaml", ".yml"})
 assert yaml_files == ["topology.template.yaml"], f"Clabgate would apply unexpected YAML files: {yaml_files}"
 

@@ -5,7 +5,7 @@
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/maintainer64/cms-labs-simple-task?quickstart=1)
 
-Это воспроизводимый пример задания CMS Labs и шаблон для будущих лабораторных работ. Codespace и локальный Dev Container запускают это задание целиком; дополнительные задания позже можно будет добавить по той же структуре. Задание содержит:
+Это воспроизводимый пример задания CMS Labs и шаблон для будущих лабораторных работ. Codespace и локальный Dev Container запускают настоящий CMS Labs UI и весь Kubernetes-контур задания; дополнительные задания позже можно будет добавить по той же структуре. Задание содержит:
 
 - Jupyter Notebook с описанием и заданиями;
 - topology для локального Containerlab и шаблон для Clabgate/Clabernetes;
@@ -17,24 +17,21 @@
 
 1. Нажмите **Open in GitHub Codespaces**.
 2. Дождитесь сообщения `CMS Labs environment is ready` в терминале.
-3. Codespaces автоматически поднимет topology из двух узлов и JupyterLab на порту `8888`.
-4. Откройте `task/task.ipynb` — здесь находится условие и рабочая тетрадь задания.
-5. Выполните задания в Notebook и запустите проверку:
-
-   ```bash
-   ./scripts/lab check
-   ```
+3. Codespaces создаст локальный kind-кластер и откроет CMS Labs frontend на порту `18080`.
+4. Войдите как `admin@admin.com` с паролем `admin`. Demo-ссылка уже содержит идентификатор попытки.
+5. На странице сессии дождитесь готовности topology и JupyterLab. Топология открывает встроенные ttyd-терминалы узлов, кнопка JupyterLab — рабочую тетрадь, кнопка «Проверить» — общий checker.
 
 Codespace автоматически запускает:
 
-- официальный Containerlab devcontainer `latest`;
-- два узла лабораторной topology;
+- локальный kind и Clabernetes;
+- настоящий `cms-labs-api` backend и CMS Labs frontend;
+- две реплики Clabgate;
+- MySQL с demo-пользователем, routing и попыткой;
+- topology из двух узлов в отдельном namespace;
 - `ghcr.io/maintainer64/cms-labs-jupyter:latest`;
-- `ghcr.io/maintainer64/cms-labs-checker:latest` по команде проверки.
+- `ghcr.io/maintainer64/cms-labs-checker:latest` по кнопке проверки.
 
-Порт Jupyter остаётся приватным портом Codespace и защищается авторизацией GitHub. Внутренний Jupyter token отключён только внутри этого защищённого окружения.
-
-В CMS это же задание открывается через workspace session Clabgate. Codespace предназначен для самостоятельного запуска, а CMS frontend — для изолированной Kubernetes-попытки с тем же GitHub commit.
+Наружу публикуется только frontend. Jupyter и ttyd остаются namespace-local и доступны через авторизованный proxy Clabgate с cookie, ограниченной одной сессией.
 
 ## Запуск на компьютере
 
@@ -48,14 +45,15 @@ Codespace автоматически запускает:
 После сборки окружение поднимется автоматически. Управлять им можно командами:
 
 ```bash
-./scripts/lab up       # поднять topology и JupyterLab
-./scripts/lab status   # показать состояние
-./scripts/lab check    # получить JSON-отчёт checker
-./scripts/lab reset    # удалить выполненную конфигурацию узлов
-./scripts/lab down     # остановить лабораторию
+./scripts/demo up      # поднять полный CMS Labs контур
+./scripts/demo status  # показать pods и topology
+./scripts/demo open    # вывести demo URL
+./scripts/demo down    # удалить локальный kind-кластер
 ```
 
-На Linux с уже установленными Docker и Containerlab эти команды можно запускать напрямую без Dev Container.
+Если порт `18080` уже занят, задайте другой: `CMS_LABS_FRONTEND_PORT=18081 ./scripts/demo up`.
+
+На Linux с Docker команды можно запускать напрямую. Launcher при необходимости устанавливает закреплённые версии kind, kubectl и Helm. Облегчённый runner `./scripts/lab` оставлен для быстрой разработки checker и topology без CMS frontend.
 
 ## Текущая лабораторная работа
 
@@ -65,7 +63,7 @@ Codespace автоматически запускает:
 
 Описание задания и шаги выполнения находятся в [`task/README.md`](task/README.md). Рабочая тетрадь — [`task.ipynb`](task/task.ipynb), контракт загрузки — [`task/lab.json`](task/lab.json). [`catalog.json`](catalog.json) оставлен как будущий registry шаблонов.
 
-## Production-контур
+## Контур задания
 
 Локальный runner воспроизводит те же три артефакта, которые использует production:
 
@@ -73,6 +71,6 @@ Codespace автоматически запускает:
 - Jupyter запускается из общего standalone-образа;
 - `TEST_PATH=sdn_lab_5` выбирает пакет `labs/sdnlab5` в общем checker-образе.
 
-Полный CMS backend и Moodle/LTI не нужны для решения учебного задания в Codespace. CMS frontend и Clabgate используют тот же session-протокол в Kubernetes-стенде API; topology, Jupyter и checker совпадают с production-контрактом.
+В Codespace используется тот же session-протокол, что и в production. Отличаются только demo-аутентификация и локальная база: Moodle/LTI заменён заранее созданной попыткой `550e8400-e29b-41d4-a716-446655440000`.
 
 Внутри директории модуля единственным файлом `.yaml/.yml` является production-манифест. Это важно: Clabgate рекурсивно собирает все YAML из `labs_path` и применяет их как Kubernetes-ресурсы. Локальная topology поэтому имеет расширение `.clab`, а метаданные — `.json`.

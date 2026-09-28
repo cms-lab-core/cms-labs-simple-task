@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+frontend_port=${CMS_LABS_FRONTEND_PORT:-18080}
+base_url=${CMS_LABS_DEMO_URL:-http://127.0.0.1:${frontend_port}}
+attempt_id=550e8400-e29b-41d4-a716-446655440000
+cookie_jar=$(mktemp "${TMPDIR:-/tmp}/cms-labs-demo-cookie.XXXXXX")
+response_body=$(mktemp "${TMPDIR:-/tmp}/cms-labs-demo-response.XXXXXX")
+response_headers=$(mktemp "${TMPDIR:-/tmp}/cms-labs-demo-headers.XXXXXX")
+trap 'rm -f "$cookie_jar" "$response_body" "$response_headers"' EXIT HUP INT TERM
+
+fail() {
+  printf 'CMS Labs demo smoke failed: %s\n' "$1" >&2
+  exit 1
+}
+
+rpc() {
+  local endpoint=$1 method=$2 params=$3 token=${4:-} response
+  local -a headers=(-H 'Content-Type: application/json')
+  if test -n "$token"; then
+    headers+=(-H "Authorization: Bearer $token")
+  fi
+  response=$(curl --noproxy '*' --fail-with-body --silent --show-error \
+    "${headers[@]}" \
+    --data "{\"jsonrpc\":\"2.0\",\"id\":\"demo-smoke\",\"method\":\"$method\",\"params\":$params}" \
+    "$base_url$endpoint")
+  if printf '%s' "$response" | jq -e '.error != null' >/dev/null; then
+    printf '%s\n' "$response" >&2
+    fail "RPC $method returned an error"
+  fi
+  printf '%s' "$response"
+}
+
+for _ in $(seq 1 120); do
+  if curl --noproxy '*' --fail --silent --output /dev/null "$base_url/session/$attempt_id"; then
+    break
+  fi
+  sleep 2
+done
+curl --noproxy '*' --fail --silent --output /dev/null "$base_url/session/$attempt_id" || \
+  fail "frontend did not become reachable"
+
+login=$(rpc /api/v1/rpc user.login \
+  '{"email":"admin@admin.com","password":"admin","provider_id":0}')
+token=$(printf '%s' "$login" | jq -er '.result.access_token')
+
+rpc /clabgate/api/v1/rpc session.ensure \
+  "{\"attempt_id\":\"$attempt_id\"}" "$token" >/dev/null
+
+session=
+for _ in $(seq 1 180); do
+  session=$(rpc /clabgate/api/v1/rpc session.get \
+    "{\"session_id\":\"$attempt_id\"}" "$token")
+  phase=$(printf '%s' "$session" | jq -r '.result.session.phase')
+  if test "$phase" = ready; then
+    break
+  fi
+  if test "$phase" = failed || test "$phase" = degraded; then
+    printf '%s\n' "$session" >&2
+    fail "session entered phase $phase"
+  fi
+  sleep 5
+done
+test "$(printf '%s' "$session" | jq -r '.result.session.phase')" = ready || \
+  fail "session did not become ready"
+
+topology=$(rpc /clabgate/api/v1/rpc topology.get \
+  "{\"session_id\":\"$attempt_id\"}" "$token")
+test "$(printf '%s' "$topology" | jq '.result.ttyd | length')" -eq 2 || {
+  printf '%s\n' "$topology" >&2
+  fail "topology did not expose two ttyd terminals"
+}
+
+workspace=$(rpc /clabgate/api/v1/rpc session.open \
+  "{\"session_id\":\"$attempt_id\"}" "$token")
+workspace_grant=$(printf '%s' "$workspace" | jq -er '.result.url')
+workspace_exchange_status=$(curl --noproxy '*' --silent --show-error \
+  --cookie-jar "$cookie_jar" --dump-header "$response_headers" \
+  --output /dev/null --write-out '%{http_code}' "$base_url$workspace_grant")
+test "$workspace_exchange_status" = 303 || fail "Jupyter grant exchange returned $workspace_exchange_status"
+workspace_location=$(awk '/^Location:/ {sub(/\r$/, "", $2); print $2}' "$response_headers")
+workspace_cookie=$(awk '$6 == "clabgate_workspace" {print $7}' "$cookie_jar")
+test -n "$workspace_location" || fail "Jupyter grant did not provide a redirect"
+test -n "$workspace_cookie" || fail "Jupyter grant did not provide a workspace cookie"
+workspace_status=$(curl --noproxy '*' --silent --show-error \
+  -H "Cookie: clabgate_workspace=$workspace_cookie" \
+  --output "$response_body" --write-out '%{http_code}' "$base_url$workspace_location")
+case "$workspace_status" in
+  2*|3*) ;;
+  *) fail "Jupyter proxy returned $workspace_status" ;;
+esac
+
+terminal_grant=$(printf '%s' "$topology" | jq -er '.result.ttyd[0].url')
+: >"$response_headers"
+terminal_exchange_status=$(curl --noproxy '*' --silent --show-error \
+  --cookie-jar "$cookie_jar" --dump-header "$response_headers" \
+  --output /dev/null --write-out '%{http_code}' "$base_url$terminal_grant")
+test "$terminal_exchange_status" = 303 || fail "terminal grant exchange returned $terminal_exchange_status"
+terminal_location=$(awk '/^Location:/ {sub(/\r$/, "", $2); print $2}' "$response_headers")
+workspace_cookie=$(awk '$6 == "clabgate_workspace" {print $7}' "$cookie_jar")
+test -n "$terminal_location" || fail "terminal grant did not provide a redirect"
+terminal_page=$(curl --noproxy '*' --fail-with-body --silent --show-error \
+  -H "Cookie: clabgate_workspace=$workspace_cookie" "$base_url$terminal_location")
+grep -qi ttyd <<<"$terminal_page" || fail "terminal proxy did not return the ttyd client"
+
+rpc /clabgate/api/v1/rpc session.check \
+  "{\"session_id\":\"$attempt_id\"}" "$token" >/dev/null
+checker_success=false
+for _ in $(seq 1 120); do
+  session=$(rpc /clabgate/api/v1/rpc session.get \
+    "{\"session_id\":\"$attempt_id\"}" "$token")
+  checker_success=$(printf '%s' "$session" | jq -r '.result.session.checker_successful // false')
+  if test "$checker_success" = true; then
+    break
+  fi
+  sleep 3
+done
+test "$checker_success" = true || fail "checker job did not finish successfully"
+
+printf 'full demo passed: session=%s ttyd=%s jupyter=%s checker=%s\n' \
+  "$attempt_id" "$(printf '%s' "$topology" | jq '.result.ttyd | length')" \
+  "$workspace_status" "$checker_success"

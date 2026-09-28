@@ -5,7 +5,7 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_root"
 
 ./scripts/validate.sh
-./scripts/lab up
+./scripts/demo up
 
 printf '\nCMS Labs environment is ready.\n'
-./scripts/lab open
+./scripts/demo open

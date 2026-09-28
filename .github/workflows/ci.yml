@@ -32,6 +32,8 @@ jobs:
           shellcheck
           .devcontainer/post-create.sh
           .devcontainer/post-start.sh
+          scripts/demo
+          scripts/demo-smoke
           scripts/lab
           scripts/validate.sh
           task/node/entrypoint.sh
@@ -150,3 +152,25 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
+
+  full-demo:
+    name: Full CMS Labs demo on kind
+    if: github.event_name != 'pull_request'
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - name: Start CMS, Clabgate, Clabernetes and the lab
+        run: ./scripts/demo up
+      - name: Verify UI session, Jupyter, ttyd and checker
+        run: ./scripts/demo-smoke
+      - name: Diagnostics
+        if: failure()
+        run: |
+          ./scripts/demo status || true
+          kubectl --context kind-cms-labs-demo get all,events,topology -A || true
+          kubectl --context kind-cms-labs-demo describe pods -A || true
+      - name: Cleanup
+        if: always()
+        run: ./scripts/demo down
