@@ -15,17 +15,27 @@ fail() {
 }
 
 rpc() {
-  local endpoint=$1 method=$2 params=$3 token=${4:-} response
-  local -a headers=(-H 'Content-Type: application/json')
-  if test -n "$token"; then
-    headers+=(-H "Authorization: Bearer $token")
-  fi
-  response=$(curl --noproxy '*' --fail-with-body --silent --show-error \
-    "${headers[@]}" \
-    --data "{\"jsonrpc\":\"2.0\",\"id\":\"demo-smoke\",\"method\":\"$method\",\"params\":$params}" \
-    "$base_url$endpoint")
-  if printf '%s' "$response" | jq -e '.error != null' >/dev/null; then
-    printf '%s\n' "$response" >&2
+	local endpoint=$1 method=$2 params=$3 token=${4:-} response http_status
+	local -a headers=(-H 'Content-Type: application/json')
+	if test -n "$token"; then
+		headers+=(-H "Authorization: Bearer $token")
+	fi
+	if ! http_status=$(curl --noproxy '*' --silent --show-error \
+		"${headers[@]}" \
+		--data "{\"jsonrpc\":\"2.0\",\"id\":\"demo-smoke\",\"method\":\"$method\",\"params\":$params}" \
+		--output "$response_body" --write-out '%{http_code}' "$base_url$endpoint"); then
+		fail "RPC $method could not reach $endpoint"
+	fi
+	response=$(<"$response_body")
+	case "$http_status" in
+		2*) ;;
+		*)
+			printf '%s\n' "$response" >&2
+			fail "RPC $method returned HTTP $http_status"
+			;;
+	esac
+	if printf '%s' "$response" | jq -e '.error != null' >/dev/null; then
+		printf '%s\n' "$response" >&2
     fail "RPC $method returned an error"
   fi
   printf '%s' "$response"
