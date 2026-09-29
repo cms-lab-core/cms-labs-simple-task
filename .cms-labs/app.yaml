@@ -74,7 +74,7 @@ spec:
             - {name: CMS_LOGIN, value: demo-kubernetes}
             - {name: CMS_PASSWORD, value: demo-secret}
             - {name: CMS_TASK_URL, value: "https://github.com/maintainer64/cms-labs-simple-task"}
-            - {name: CMS_TASK_BRANCH, value: v1.0.1}
+            - {name: CMS_TASK_BRANCH, value: v1.0.2}
             - {name: JUPYTER_IMAGE, value: "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0"}
             - {name: JUPYTER_STORAGE_SIZE, value: 1Gi}
             - {name: WORKSPACE_AUTH_SECRET, value: cms-labs-demo-cookie-secret-change-before-production}

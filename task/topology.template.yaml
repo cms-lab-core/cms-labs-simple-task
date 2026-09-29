@@ -12,7 +12,7 @@ spec:
         nodes:
           r1:
             kind: linux
-            image: ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.1
+            image: ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.2
             ttyd-shell: /bin/bash
             image-pull-policy: Always
             env:
@@ -23,7 +23,7 @@ spec:
               - 18081:8080/tcp
           s1:
             kind: linux
-            image: ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.1
+            image: ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.2
             ttyd-shell: /bin/bash
             image-pull-policy: Always
             env:
