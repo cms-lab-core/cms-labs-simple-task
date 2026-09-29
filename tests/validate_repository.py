@@ -61,13 +61,13 @@ assert metadata["spec"]["types"]["assessment"] == "automatic-checker"
 assert "github-codespaces" in metadata["spec"]["execution"]
 assert metadata["spec"]["runtime"]["jupyterImage"] == "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0"
 assert metadata["spec"]["runtime"]["checkerImage"] == "ghcr.io/maintainer64/cms-labs-checker:1.0.1"
-assert metadata["spec"]["runtime"]["nodeImage"] == "ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.3-rc.1"
+assert metadata["spec"]["runtime"]["nodeImage"] == "ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.3"
 
 app_manifest = (ROOT / ".cms-labs" / "app.yaml").read_text(encoding="utf-8")
 seed_manifest = (ROOT / ".cms-labs" / "seed.yaml").read_text(encoding="utf-8")
 for component in ["backend", "clabgate", "frontend"]:
     assert f"ghcr.io/maintainer64/cms-labs-api/{component}:1.1.3" in app_manifest
-assert "CMS_TASK_BRANCH, value: v1.0.3-rc.1" in app_manifest
+assert "CMS_TASK_BRANCH, value: v1.0.3" in app_manifest
 assert "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0" in app_manifest
 assert "ghcr.io/maintainer64/cms-labs-checker:1.0.1" in app_manifest
 assert "ghcr.io/maintainer64/cms-labs-api/backend:1.1.3" in seed_manifest
@@ -80,12 +80,12 @@ for document in [topology, template]:
     assert "r1:" in document and "s1:" in document
     assert "r1:eth1" in document and "s1:eth1" in document
 assert topology.count("image: ${SDN_LAB_NODE_IMAGE}") == 2
-assert template.count("cms-labs-simple-task-node:1.0.3-rc.1") == 2
+assert template.count("cms-labs-simple-task-node:1.0.3") == 2
 assert "name: $NAME" in template and "namespace: $NAME" in template
 assert "apiVersion: c9s.run/v1alpha1" in template
 assert template.count("ttyd-shell: /bin/bash") == 2
 lab_launcher = (ROOT / "scripts" / "lab").read_text(encoding="utf-8")
-assert "cms-labs-simple-task-node:1.0.3-rc.1" in lab_launcher
+assert "cms-labs-simple-task-node:1.0.3" in lab_launcher
 assert "export SDN_LAB_NODE_IMAGE=$node_image" in lab_launcher
 demo_launcher = (ROOT / "scripts" / "demo").read_text(encoding="utf-8")
 assert "oci://ghcr.io/maintainer64/cms-labs-clabernetes/clabernetes" in demo_launcher

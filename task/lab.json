@@ -28,7 +28,7 @@
     "runtime": {
       "jupyterImage": "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0",
       "checkerImage": "ghcr.io/maintainer64/cms-labs-checker:1.0.1",
-      "nodeImage": "ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.3-rc.1"
+      "nodeImage": "ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.3"
     }
   }
 }
