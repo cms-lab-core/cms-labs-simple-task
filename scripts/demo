@@ -13,7 +13,7 @@ frontend_port=${CMS_LABS_FRONTEND_PORT:-18080}
 kind_version=v0.33.0
 kubectl_version=v1.33.12
 helm_version=v3.19.0
-clabernetes_version=0.0.0
+clabernetes_version=0.8.0-4
 
 install_binary() {
   local name=$1 url=$2 destination="$tool_bin_dir/$1"

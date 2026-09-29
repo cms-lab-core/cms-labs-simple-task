@@ -14,7 +14,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: backend
-          image: ghcr.io/maintainer64/cms-labs-api/backend:latest
+          image: ghcr.io/maintainer64/cms-labs-api/backend:1.1.1
           imagePullPolicy: Always
           envFrom:
             - configMapRef: {name: cms-demo-backend-env}
@@ -61,7 +61,7 @@ spec:
       serviceAccountName: clabgate
       containers:
         - name: clabgate
-          image: ghcr.io/maintainer64/cms-labs-api/clabgate:latest
+          image: ghcr.io/maintainer64/cms-labs-api/clabgate:1.1.1
           imagePullPolicy: Always
           ports: [{name: http, containerPort: 8080}]
           env:
@@ -74,12 +74,12 @@ spec:
             - {name: CMS_LOGIN, value: demo-kubernetes}
             - {name: CMS_PASSWORD, value: demo-secret}
             - {name: CMS_TASK_URL, value: "https://github.com/maintainer64/cms-labs-simple-task"}
-            - {name: CMS_TASK_BRANCH, value: main}
-            - {name: JUPYTER_IMAGE, value: "ghcr.io/maintainer64/cms-labs-jupyter:latest"}
+            - {name: CMS_TASK_BRANCH, value: v1.0.0}
+            - {name: JUPYTER_IMAGE, value: "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0"}
             - {name: JUPYTER_STORAGE_SIZE, value: 1Gi}
             - {name: WORKSPACE_AUTH_SECRET, value: cms-labs-demo-cookie-secret-change-before-production}
             - {name: WORKSPACE_COOKIE_SECURE, value: "false"}
-            - {name: CHECKER_IMAGE, value: "ghcr.io/maintainer64/cms-labs-checker:latest"}
+            - {name: CHECKER_IMAGE, value: "ghcr.io/maintainer64/cms-labs-checker:1.0.0"}
             - {name: SESSION_RECONCILE_INTERVAL_SECONDS, value: "3"}
             - name: JWT_SECRET_KEY_PUBLIC
               valueFrom: {secretKeyRef: {name: cms-demo-jwt, key: public.pem}}
@@ -120,7 +120,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: frontend
-          image: ghcr.io/maintainer64/cms-labs-api/frontend:latest
+          image: ghcr.io/maintainer64/cms-labs-api/frontend:1.1.1
           imagePullPolicy: Always
           ports: [{name: http, containerPort: 80}]
           env:

@@ -71,12 +71,16 @@ jobs:
     needs: node-image
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      SDN_LAB_NODE_IMAGE: cms-labs-simple-task-node:ci
     steps:
       - uses: actions/checkout@v7
       - name: Install latest Containerlab
         env:
           SETUP_SSHD: "false"
         run: curl --fail --silent --show-error --location https://containerlab.dev/setup | sudo -E bash -s "install-containerlab"
+      - name: Build the node used by this workflow
+        run: docker build --tag "$SDN_LAB_NODE_IMAGE" task/node
       - name: Start topology and Jupyter
         run: ./scripts/lab up
       - name: Verify incomplete result

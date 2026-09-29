@@ -59,15 +59,27 @@ assert metadata["spec"]["topologyPath"] == "task/topology.template.yaml"
 assert metadata["spec"]["types"]["subject"] == "network-lab"
 assert metadata["spec"]["types"]["assessment"] == "automatic-checker"
 assert "github-codespaces" in metadata["spec"]["execution"]
-assert metadata["spec"]["runtime"]["jupyterImage"] == "ghcr.io/maintainer64/cms-labs-jupyter:latest"
-assert metadata["spec"]["runtime"]["checkerImage"] == "ghcr.io/maintainer64/cms-labs-checker:latest"
+assert metadata["spec"]["runtime"]["jupyterImage"] == "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0"
+assert metadata["spec"]["runtime"]["checkerImage"] == "ghcr.io/maintainer64/cms-labs-checker:1.0.0"
+assert metadata["spec"]["runtime"]["nodeImage"] == "ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.0"
+
+app_manifest = (ROOT / ".cms-labs" / "app.yaml").read_text(encoding="utf-8")
+seed_manifest = (ROOT / ".cms-labs" / "seed.yaml").read_text(encoding="utf-8")
+for component in ["backend", "clabgate", "frontend"]:
+    assert f"ghcr.io/maintainer64/cms-labs-api/{component}:1.1.1" in app_manifest
+assert "CMS_TASK_BRANCH, value: v1.0.0" in app_manifest
+assert "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0" in app_manifest
+assert "ghcr.io/maintainer64/cms-labs-checker:1.0.0" in app_manifest
+assert "ghcr.io/maintainer64/cms-labs-api/backend:1.1.1" in seed_manifest
+assert ":latest" not in app_manifest
+assert ":latest" not in seed_manifest
 
 topology = (LAB / "topology.clab").read_text(encoding="utf-8")
 template = (LAB / "topology.template.yaml").read_text(encoding="utf-8")
 for document in [topology, template]:
     assert "r1:" in document and "s1:" in document
     assert "r1:eth1" in document and "s1:eth1" in document
-    assert "cms-labs-simple-task-node:latest" in document
+    assert "cms-labs-simple-task-node:1.0.0" in document
 assert "name: $NAME" in template and "namespace: $NAME" in template
 assert "apiVersion: c9s.run/v1alpha1" in template
 assert template.count("ttyd-shell: /bin/bash") == 2
@@ -76,7 +88,11 @@ assert "oci://ghcr.io/maintainer64/cms-labs-clabernetes/clabernetes" in demo_lau
 assert "globalConfig.deployment.launcher.image" in demo_launcher
 assert "launcherImage" not in demo_launcher
 assert "clabernetes-launcher:dev-latest" not in demo_launcher
+assert "clabernetes_version=0.8.0-4" in demo_launcher
 assert "CMS_LABS_FRONTEND_PORT" in demo_launcher
+node_dockerfile = (LAB / "node" / "Dockerfile").read_text(encoding="utf-8")
+assert "FROM alpine:3.24.2" in node_dockerfile
+assert "FROM alpine:latest" not in node_dockerfile
 yaml_files = sorted(path.name for path in LAB.rglob("*") if path.suffix.lower() in {".yaml", ".yml"})
 assert yaml_files == ["topology.template.yaml"], f"Clabgate would apply unexpected YAML files: {yaml_files}"
 

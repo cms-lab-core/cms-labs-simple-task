@@ -26,9 +26,9 @@
     "testPath": "sdn_lab_5",
     "topologyPath": "task/topology.template.yaml",
     "runtime": {
-      "jupyterImage": "ghcr.io/maintainer64/cms-labs-jupyter:latest",
-      "checkerImage": "ghcr.io/maintainer64/cms-labs-checker:latest",
-      "nodeImage": "ghcr.io/maintainer64/cms-labs-simple-task-node:latest"
+      "jupyterImage": "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0",
+      "checkerImage": "ghcr.io/maintainer64/cms-labs-checker:1.0.0",
+      "nodeImage": "ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.0"
     }
   }
 }
