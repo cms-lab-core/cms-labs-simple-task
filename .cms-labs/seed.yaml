@@ -12,7 +12,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: seed
-          image: ghcr.io/maintainer64/cms-labs-api/backend:1.1.1
+          image: ghcr.io/maintainer64/cms-labs-api/backend:1.1.2
           imagePullPolicy: Always
           args: ["--demo"]
           envFrom:

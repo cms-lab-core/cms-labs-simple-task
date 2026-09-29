@@ -60,17 +60,17 @@ assert metadata["spec"]["types"]["subject"] == "network-lab"
 assert metadata["spec"]["types"]["assessment"] == "automatic-checker"
 assert "github-codespaces" in metadata["spec"]["execution"]
 assert metadata["spec"]["runtime"]["jupyterImage"] == "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0"
-assert metadata["spec"]["runtime"]["checkerImage"] == "ghcr.io/maintainer64/cms-labs-checker:1.0.0"
-assert metadata["spec"]["runtime"]["nodeImage"] == "ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.0"
+assert metadata["spec"]["runtime"]["checkerImage"] == "ghcr.io/maintainer64/cms-labs-checker:1.0.1"
+assert metadata["spec"]["runtime"]["nodeImage"] == "ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.1"
 
 app_manifest = (ROOT / ".cms-labs" / "app.yaml").read_text(encoding="utf-8")
 seed_manifest = (ROOT / ".cms-labs" / "seed.yaml").read_text(encoding="utf-8")
 for component in ["backend", "clabgate", "frontend"]:
-    assert f"ghcr.io/maintainer64/cms-labs-api/{component}:1.1.1" in app_manifest
-assert "CMS_TASK_BRANCH, value: v1.0.0" in app_manifest
+    assert f"ghcr.io/maintainer64/cms-labs-api/{component}:1.1.2" in app_manifest
+assert "CMS_TASK_BRANCH, value: v1.0.1" in app_manifest
 assert "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0" in app_manifest
-assert "ghcr.io/maintainer64/cms-labs-checker:1.0.0" in app_manifest
-assert "ghcr.io/maintainer64/cms-labs-api/backend:1.1.1" in seed_manifest
+assert "ghcr.io/maintainer64/cms-labs-checker:1.0.1" in app_manifest
+assert "ghcr.io/maintainer64/cms-labs-api/backend:1.1.2" in seed_manifest
 assert ":latest" not in app_manifest
 assert ":latest" not in seed_manifest
 
@@ -79,7 +79,7 @@ template = (LAB / "topology.template.yaml").read_text(encoding="utf-8")
 for document in [topology, template]:
     assert "r1:" in document and "s1:" in document
     assert "r1:eth1" in document and "s1:eth1" in document
-    assert "cms-labs-simple-task-node:1.0.0" in document
+    assert "cms-labs-simple-task-node:1.0.1" in document
 assert "name: $NAME" in template and "namespace: $NAME" in template
 assert "apiVersion: c9s.run/v1alpha1" in template
 assert template.count("ttyd-shell: /bin/bash") == 2

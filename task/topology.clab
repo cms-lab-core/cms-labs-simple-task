@@ -8,7 +8,7 @@ topology:
   nodes:
     r1:
       kind: linux
-      image: ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.0
+      image: ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.1
       mgmt-ipv4: 172.31.55.11
       env:
         LAB_PEER: 10.50.0.2
@@ -18,7 +18,7 @@ topology:
         - 18081:8080/tcp
     s1:
       kind: linux
-      image: ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.0
+      image: ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.1
       mgmt-ipv4: 172.31.55.12
       env:
         LAB_PEER: 10.50.0.1
