@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: "23 3 * * 1"
   workflow_dispatch:
+    inputs:
+      validation_only:
+        description: Run contract, node smoke and lab lifecycle without publishing artifacts
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -57,7 +62,7 @@ jobs:
         run: |
           docker run --detach --privileged --name sdn-lab-node -p 18080:8080 \
             ghcr.io/maintainer64/cms-labs-simple-task-node:latest
-          for attempt in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             curl --fail --silent http://127.0.0.1:18080/state > state.json && break
             sleep 1
           done
@@ -115,7 +120,7 @@ jobs:
 
   publish:
     name: Publish multi-arch lab node
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.validation_only == false)
     needs: e2e
     runs-on: ubuntu-latest
     permissions:
@@ -159,7 +164,7 @@ jobs:
 
   full-demo:
     name: Full CMS Labs demo on kind
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.validation_only == false)
     needs: publish
     runs-on: ubuntu-latest
     timeout-minutes: 35
