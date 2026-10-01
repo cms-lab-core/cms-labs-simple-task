@@ -67,7 +67,7 @@ app_manifest = (ROOT / ".cms-labs" / "app.yaml").read_text(encoding="utf-8")
 seed_manifest = (ROOT / ".cms-labs" / "seed.yaml").read_text(encoding="utf-8")
 for component in ["backend", "clabgate", "frontend"]:
     assert f"ghcr.io/cms-lab-core/cms-labs-api/{component}:latest" in app_manifest
-assert "CMS_TASK_BRANCH, value: latest" in app_manifest
+assert "CMS_TASK_BRANCH, value: main" in app_manifest
 assert "ghcr.io/cms-lab-core/cms-labs-jupyter:latest" in app_manifest
 assert "ghcr.io/cms-lab-core/cms-labs-checker:latest" in app_manifest
 assert "ghcr.io/cms-lab-core/cms-labs-api/backend:latest" in seed_manifest
