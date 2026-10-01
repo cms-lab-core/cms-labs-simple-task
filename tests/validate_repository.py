@@ -35,7 +35,7 @@ assert not missing, f"missing required files: {', '.join(missing)}"
 assert not list((ROOT / "modules").glob("**/.git")), "modules must not contain nested Git repositories"
 
 readme = (ROOT / "README.md").read_text(encoding="utf-8")
-assert "https://codespaces.new/maintainer64/cms-labs-simple-task?quickstart=1" in readme
+assert "https://codespaces.new/cms-lab-core/cms-labs-simple-task?quickstart=1" in readme
 assert "task/task.ipynb" in readme.lower()
 
 catalog = json.loads((ROOT / "catalog.json").read_text(encoding="utf-8"))
@@ -59,18 +59,18 @@ assert metadata["spec"]["topologyPath"] == "task/topology.template.yaml"
 assert metadata["spec"]["types"]["subject"] == "network-lab"
 assert metadata["spec"]["types"]["assessment"] == "automatic-checker"
 assert "github-codespaces" in metadata["spec"]["execution"]
-assert metadata["spec"]["runtime"]["jupyterImage"] == "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0"
-assert metadata["spec"]["runtime"]["checkerImage"] == "ghcr.io/maintainer64/cms-labs-checker:1.0.1"
-assert metadata["spec"]["runtime"]["nodeImage"] == "ghcr.io/maintainer64/cms-labs-simple-task-node:1.0.3"
+assert metadata["spec"]["runtime"]["jupyterImage"] == "ghcr.io/cms-lab-core/cms-labs-jupyter:latest"
+assert metadata["spec"]["runtime"]["checkerImage"] == "ghcr.io/cms-lab-core/cms-labs-checker:latest"
+assert metadata["spec"]["runtime"]["nodeImage"] == "ghcr.io/cms-lab-core/cms-labs-simple-task-node:latest"
 
 app_manifest = (ROOT / ".cms-labs" / "app.yaml").read_text(encoding="utf-8")
 seed_manifest = (ROOT / ".cms-labs" / "seed.yaml").read_text(encoding="utf-8")
 for component in ["backend", "clabgate", "frontend"]:
-    assert f"ghcr.io/maintainer64/cms-labs-api/{component}:1.1.3" in app_manifest
-assert "CMS_TASK_BRANCH, value: v1.0.3" in app_manifest
-assert "ghcr.io/maintainer64/cms-labs-jupyter:1.0.0" in app_manifest
-assert "ghcr.io/maintainer64/cms-labs-checker:1.0.1" in app_manifest
-assert "ghcr.io/maintainer64/cms-labs-api/backend:1.1.3" in seed_manifest
+    assert f"ghcr.io/cms-lab-core/cms-labs-api/{component}:latest" in app_manifest
+assert "CMS_TASK_BRANCH, value: latest" in app_manifest
+assert "ghcr.io/cms-lab-core/cms-labs-jupyter:latest" in app_manifest
+assert "ghcr.io/cms-lab-core/cms-labs-checker:latest" in app_manifest
+assert "ghcr.io/cms-lab-core/cms-labs-api/backend:latest" in seed_manifest
 assert ":latest" not in app_manifest
 assert ":latest" not in seed_manifest
 
@@ -88,7 +88,7 @@ lab_launcher = (ROOT / "scripts" / "lab").read_text(encoding="utf-8")
 assert "cms-labs-simple-task-node:1.0.3" in lab_launcher
 assert "export SDN_LAB_NODE_IMAGE=$node_image" in lab_launcher
 demo_launcher = (ROOT / "scripts" / "demo").read_text(encoding="utf-8")
-assert "oci://ghcr.io/maintainer64/cms-labs-clabernetes/clabernetes" in demo_launcher
+assert "oci://ghcr.io/cms-lab-core/cms-labs-clabernetes/clabernetes" in demo_launcher
 assert "globalConfig.deployment.launcher.image" in demo_launcher
 assert "launcherImage" not in demo_launcher
 assert "clabernetes-launcher:dev-latest" not in demo_launcher

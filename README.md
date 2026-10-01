@@ -1,9 +1,9 @@
 # CMS Labs Simple Task
 
-[![CI](https://github.com/maintainer64/cms-labs-simple-task/actions/workflows/ci.yml/badge.svg)](https://github.com/maintainer64/cms-labs-simple-task/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/maintainer64/cms-labs-simple-task/actions/workflows/codeql.yml/badge.svg)](https://github.com/maintainer64/cms-labs-simple-task/actions/workflows/codeql.yml)
+[![CI](https://github.com/cms-lab-core/cms-labs-simple-task/actions/workflows/ci.yml/badge.svg)](https://github.com/cms-lab-core/cms-labs-simple-task/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/cms-lab-core/cms-labs-simple-task/actions/workflows/codeql.yml/badge.svg)](https://github.com/cms-lab-core/cms-labs-simple-task/actions/workflows/codeql.yml)
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/maintainer64/cms-labs-simple-task?quickstart=1)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/cms-lab-core/cms-labs-simple-task?quickstart=1)
 
 Это воспроизводимый пример задания CMS Labs и шаблон для будущих лабораторных работ. Codespace и локальный Dev Container запускают настоящий CMS Labs UI и весь Kubernetes-контур задания; дополнительные задания позже можно будет добавить по той же структуре. Задание содержит:
 
@@ -28,8 +28,8 @@ Codespace автоматически запускает:
 - две реплики Clabgate;
 - MySQL с demo-пользователем, routing и попыткой;
 - topology из двух узлов в отдельном namespace;
-- `ghcr.io/maintainer64/cms-labs-jupyter:1.0.0`;
-- `ghcr.io/maintainer64/cms-labs-checker:1.0.1` по кнопке проверки.
+- `ghcr.io/cms-lab-core/cms-labs-jupyter:latest`;
+- `ghcr.io/cms-lab-core/cms-labs-checker:latest` по кнопке проверки.
 
 Наружу публикуется только frontend. Jupyter и ttyd остаются namespace-local и доступны через авторизованный proxy Clabgate с cookie, ограниченной одной сессией.
 

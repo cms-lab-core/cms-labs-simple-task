@@ -3,7 +3,7 @@
 `cms-labs-simple-task` содержит самостоятельный воспроизводимый пример задания CMS Labs. Это не каталог конкретных курсов: репозиторий можно использовать как шаблон и открывать одним из поддерживаемых способов:
 
 ```text
-CMS_TASK_URL=https://github.com/maintainer64/cms-labs-simple-task
+CMS_TASK_URL=https://github.com/cms-lab-core/cms-labs-simple-task
 ```
 
 Описание задания находится в `task/README.md`, а рабочая тетрадь — в `task/task.ipynb`. Clabgate использует `task` как `labs_path`, закрепляет попытку на одном commit SHA и получает из него topology и метаданные согласованной версии.

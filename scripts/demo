@@ -73,7 +73,7 @@ create_cluster() {
 install_clabernetes() {
   # The personal OCI chart pins both manager.image and the current
   # globalConfig.deployment.launcher.image; do not replace them with a stale mutable tag.
-  helm upgrade --install clabernetes oci://ghcr.io/maintainer64/cms-labs-clabernetes/clabernetes \
+  helm upgrade --install clabernetes oci://ghcr.io/cms-lab-core/cms-labs-clabernetes/clabernetes \
     --version "$clabernetes_version" --namespace c9s --create-namespace --kube-context "$context" \
     --set globalConfig.mergeMode=overwrite \
     --set ui.enabled=false
