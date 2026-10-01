@@ -81,7 +81,7 @@ assert topology.count("image: ${SDN_LAB_NODE_IMAGE}") == 2
 assert template.count("cms-labs-simple-task-node:latest") == 2
 assert "name: $NAME" in template and "namespace: $NAME" in template
 assert "apiVersion: c9s.run/v1alpha1" in template
-assert template.count("ttyd-shell: /bin/bash") == 2
+assert template.count("ttyd-shell: /bin/ash") == 2
 lab_launcher = (ROOT / "scripts" / "lab").read_text(encoding="utf-8")
 assert "cms-labs-simple-task-node:latest" in lab_launcher
 assert "export SDN_LAB_NODE_IMAGE=$node_image" in lab_launcher
