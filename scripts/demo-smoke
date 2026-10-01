@@ -3,7 +3,7 @@ set -euo pipefail
 
 frontend_port=${CMS_LABS_FRONTEND_PORT:-18080}
 base_url=${CMS_LABS_DEMO_URL:-http://127.0.0.1:${frontend_port}}
-attempt_id=550e8400-e29b-41d4-a716-446655440000
+attempt_id=00000000-0000-0000-0000-000000000000
 cookie_jar=$(mktemp "${TMPDIR:-/tmp}/cms-labs-demo-cookie.XXXXXX")
 response_body=$(mktemp "${TMPDIR:-/tmp}/cms-labs-demo-response.XXXXXX")
 response_headers=$(mktemp "${TMPDIR:-/tmp}/cms-labs-demo-headers.XXXXXX")

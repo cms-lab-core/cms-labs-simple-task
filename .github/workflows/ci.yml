@@ -181,7 +181,7 @@ jobs:
           kubectl --context kind-cms-labs-demo get all,events,topology -A || true
           kubectl --context kind-cms-labs-demo logs -n cms-labs-system deployment/backend --tail=200 || true
           kubectl --context kind-cms-labs-demo logs -n cms-labs-system -l app=clabgate --all-containers --prefix --tail=200 || true
-          kubectl --context kind-cms-labs-demo logs -n lab-550e8400-e29b-41d4-a716-446655440000 --all-containers --prefix --tail=200 || true
+          kubectl --context kind-cms-labs-demo logs -n lab-00000000-0000-0000-0000-000000000000 --all-containers --prefix --tail=200 || true
           kubectl --context kind-cms-labs-demo describe pods -A || true
       - name: Cleanup
         if: always()
