@@ -71,8 +71,6 @@ assert "CMS_TASK_BRANCH, value: main" in app_manifest
 assert "ghcr.io/cms-lab-core/cms-labs-jupyter:latest" in app_manifest
 assert "ghcr.io/cms-lab-core/cms-labs-checker:latest" in app_manifest
 assert "ghcr.io/cms-lab-core/cms-labs-api/backend:latest" in seed_manifest
-assert ":latest" not in app_manifest
-assert ":latest" not in seed_manifest
 
 topology = (LAB / "topology.clab").read_text(encoding="utf-8")
 template = (LAB / "topology.template.yaml").read_text(encoding="utf-8")
@@ -80,19 +78,19 @@ for document in [topology, template]:
     assert "r1:" in document and "s1:" in document
     assert "r1:eth1" in document and "s1:eth1" in document
 assert topology.count("image: ${SDN_LAB_NODE_IMAGE}") == 2
-assert template.count("cms-labs-simple-task-node:1.0.3") == 2
+assert template.count("cms-labs-simple-task-node:latest") == 2
 assert "name: $NAME" in template and "namespace: $NAME" in template
 assert "apiVersion: c9s.run/v1alpha1" in template
 assert template.count("ttyd-shell: /bin/bash") == 2
 lab_launcher = (ROOT / "scripts" / "lab").read_text(encoding="utf-8")
-assert "cms-labs-simple-task-node:1.0.3" in lab_launcher
+assert "cms-labs-simple-task-node:latest" in lab_launcher
 assert "export SDN_LAB_NODE_IMAGE=$node_image" in lab_launcher
 demo_launcher = (ROOT / "scripts" / "demo").read_text(encoding="utf-8")
 assert "oci://ghcr.io/cms-lab-core/cms-labs-clabernetes/clabernetes" in demo_launcher
 assert "globalConfig.deployment.launcher.image" in demo_launcher
 assert "launcherImage" not in demo_launcher
 assert "clabernetes-launcher:dev-latest" not in demo_launcher
-assert "clabernetes_version=0.8.0-4" in demo_launcher
+assert "clabernetes_version=0.8.0-5" in demo_launcher
 assert "CMS_LABS_FRONTEND_PORT" in demo_launcher
 node_dockerfile = (LAB / "node" / "Dockerfile").read_text(encoding="utf-8")
 assert "FROM alpine:3.24.2" in node_dockerfile
