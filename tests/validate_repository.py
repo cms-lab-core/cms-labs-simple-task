@@ -95,10 +95,10 @@ lab_launcher = (ROOT / "scripts" / "lab").read_text(encoding="utf-8")
 assert "cms-labs-simple-task-node:latest" in lab_launcher
 assert "export SDN_LAB_NODE_IMAGE=$node_image" in lab_launcher
 demo_launcher = (ROOT / "scripts" / "demo").read_text(encoding="utf-8")
-assert "oci://ghcr.io/srl-labs/clabernetes/clabernetes" in demo_launcher
+assert "oci://ghcr.io/clabernetes/clabernetes/clabernetes" in demo_launcher
 assert "launcherImage" not in demo_launcher
 assert "clabernetes-launcher:dev-latest" not in demo_launcher
-assert "clabernetes_version=0.8.0" in demo_launcher
+assert "clabernetes_version=0.9.0" in demo_launcher
 assert "CMS_LABS_FRONTEND_PORT" in demo_launcher
 node_dockerfile = (LAB / "node" / "Dockerfile").read_text(encoding="utf-8")
 assert "FROM alpine:3.24.2" in node_dockerfile
