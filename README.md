@@ -9,6 +9,7 @@
 
 - Jupyter Notebook с описанием и заданиями;
 - topology для локального Containerlab и шаблон для Clabgate/Clabernetes;
+- отдельный namespace-local `cms-labs-terminal`, не требующий `tmux` или модификации узлов;
 - изолированное окружение сетевых узлов;
 - имя отдельного checker, возвращающего структурированный JSON-отчёт;
 - автоматические проверки репозитория и полного жизненного цикла лаборатории.
@@ -23,15 +24,15 @@
 
 Codespace автоматически запускает:
 
-- локальный kind и Clabernetes;
+- локальный kind и официальный Clabernetes;
 - настоящий `cms-labs-api` backend и CMS Labs frontend;
 - две реплики Clabgate;
 - MySQL с demo-пользователем, routing и попыткой;
-- topology из двух узлов в отдельном namespace;
+- topology из двух узлов и отдельный terminal broker в namespace попытки;
 - `ghcr.io/cms-lab-core/cms-labs-jupyter:latest`;
 - `ghcr.io/cms-lab-core/cms-labs-checker:latest` по кнопке проверки.
 
-Наружу публикуется только frontend. Jupyter и ttyd остаются namespace-local и доступны через авторизованный proxy Clabgate с cookie, ограниченной одной сессией.
+Наружу публикуется только frontend. Jupyter и terminal Services остаются namespace-local и доступны через авторизованный proxy Clabgate с cookie, ограниченной одной сессией. NetworkPolicy разрешает вход в terminal Pod только из namespace системного proxy.
 
 ## Запуск на компьютере
 
@@ -67,12 +68,13 @@ Codespace автоматически запускает:
 
 Локальный runner воспроизводит те же три артефакта, которые использует production:
 
-- Clabgate читает `topology.template.yaml` и создаёт topology в namespace попытки;
+- Clabgate читает разрешённые namespaced-ресурсы из `task/*.yaml` и применяет их в namespace попытки;
+- `topology.template.yaml` описывает только topology, а `terminal.template.yaml` независимо и целиком описывает `cms-labs-terminal`, его конфигурацию, RBAC, NetworkPolicy и Services `r1-terminal`/`s1-terminal`;
 - Jupyter запускается из общего standalone-образа;
 - `TEST_PATH=sdn_lab_5` выбирает пакет `labs/sdnlab5` в общем checker-образе.
 
 В Codespace используется тот же session-протокол, что и в production. Отличаются только demo-аутентификация и локальная база: Moodle/LTI заменён заранее созданной попыткой `00000000-0000-0000-0000-000000000000`.
 
-Версия шаблона `v1.0.3` закрепляет API `1.1.3`, Clabernetes fork `0.8.0-4`, Jupyter `1.0.0`, checker `1.0.1` и node image `1.0.3`. Тег `latest` публикуется для разработки, но воспроизводимый контур его не использует.
+Полный контур использует официальный Clabernetes `0.8.0` и `cms-labs-terminal:1.0.0`. Terminal broker подключается к узлам через Kubernetes exec и переживает перезагрузку браузерной вкладки без `tmux` внутри учебного устройства.
 
-Внутри директории модуля единственным файлом `.yaml/.yml` является production-манифест. Это важно: Clabgate рекурсивно собирает все YAML из `labs_path` и применяет их как Kubernetes-ресурсы. Локальная topology поэтому имеет расширение `.clab`, а метаданные — `.json`.
+Файлы `*.template.yaml` являются production-манифестами задания. Clabgate рекурсивно находит только этот суффикс, пропускает ограниченный список namespaced-ресурсов, валидирует весь набор до первой записи и применяет его в namespace попытки. Поэтому demo/CI YAML из других каталогов не попадёт в сессию, локальная topology имеет расширение `.clab`, а метаданные — `.json`.

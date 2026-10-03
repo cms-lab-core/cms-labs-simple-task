@@ -80,6 +80,7 @@ spec:
             - {name: WORKSPACE_AUTH_SECRET, value: cms-labs-demo-cookie-secret-change-before-production}
             - {name: WORKSPACE_COOKIE_SECURE, value: "false"}
             - {name: CHECKER_IMAGE, value: "ghcr.io/cms-lab-core/cms-labs-checker:latest"}
+            - {name: WORKSPACE_PROXY_NAMESPACE, value: cms-labs-system}
             - {name: SESSION_RECONCILE_INTERVAL_SECONDS, value: "3"}
             - name: JWT_SECRET_KEY_PUBLIC
               valueFrom: {secretKeyRef: {name: cms-demo-jwt, key: public.pem}}

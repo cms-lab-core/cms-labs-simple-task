@@ -13,7 +13,6 @@ spec:
           r1:
             kind: linux
             image: ghcr.io/cms-lab-core/cms-labs-simple-task-node:latest
-            ttyd-shell: /bin/ash
             image-pull-policy: Always
             env:
               LAB_PEER: 10.50.0.2
@@ -24,7 +23,6 @@ spec:
           s1:
             kind: linux
             image: ghcr.io/cms-lab-core/cms-labs-simple-task-node:latest
-            ttyd-shell: /bin/ash
             image-pull-policy: Always
             env:
               LAB_PEER: 10.50.0.1

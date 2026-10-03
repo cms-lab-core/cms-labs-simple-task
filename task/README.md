@@ -37,5 +37,9 @@ r1 eth1 (10.50.0.1/30) <------> (10.50.0.2/30) eth1 s1
 - `task.ipynb` — описание задания и рабочая тетрадь студента;
 - `topology.clab` — локальный Containerlab/Codespaces; нестандартное расширение не даёт Clabgate применить файл как Kubernetes-манифест;
 - `topology.template.yaml` — production-шаблон Clabernetes;
+- `terminal.template.yaml` — полный независимый deployment-контракт terminal broker: конфигурация целей, RBAC, Services и NetworkPolicy;
 - `node/` — открытый образ учебного Linux-узла;
 - `lab.json` — метаданные обнаружения лаборатории.
+
+Команда terminal задаётся отдельно для каждого target. В этом задании оба Alpine-узла используют
+`/bin/ash -l`; в смешанной topology SR Linux может использовать `sr_cli`, а Linux-PC — `/bin/bash -l`.

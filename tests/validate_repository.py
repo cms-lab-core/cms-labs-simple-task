@@ -26,6 +26,7 @@ required = [
     LAB / "lab.json",
     LAB / "topology.clab",
     LAB / "topology.template.yaml",
+    LAB / "terminal.template.yaml",
     LAB / "node" / "Dockerfile",
     LAB / "node" / "lab_agent.py",
 ]
@@ -74,6 +75,7 @@ assert "ghcr.io/cms-lab-core/cms-labs-api/backend:latest" in seed_manifest
 
 topology = (LAB / "topology.clab").read_text(encoding="utf-8")
 template = (LAB / "topology.template.yaml").read_text(encoding="utf-8")
+terminal_template = (LAB / "terminal.template.yaml").read_text(encoding="utf-8")
 for document in [topology, template]:
     assert "r1:" in document and "s1:" in document
     assert "r1:eth1" in document and "s1:eth1" in document
@@ -81,22 +83,30 @@ assert topology.count("image: ${SDN_LAB_NODE_IMAGE}") == 2
 assert template.count("cms-labs-simple-task-node:latest") == 2
 assert "name: $NAME" in template and "namespace: $NAME" in template
 assert "apiVersion: c9s.run/v1alpha1" in template
-assert template.count("ttyd-shell: /bin/ash") == 2
+assert "ttyd-shell" not in template
+assert "ghcr.io/cms-lab-core/cms-labs-terminal:latest" in terminal_template
+assert "command: [/bin/ash, -l]" in terminal_template
+assert "name: r1" in terminal_template and "port: 7681" in terminal_template
+assert "name: s1" in terminal_template and "port: 7682" in terminal_template
+assert "$WORKSPACE_PROXY_NAMESPACE" in terminal_template
+for kind in ["ServiceAccount", "Role", "RoleBinding", "ConfigMap", "Deployment", "Service", "NetworkPolicy"]:
+    assert f"kind: {kind}" in terminal_template
 lab_launcher = (ROOT / "scripts" / "lab").read_text(encoding="utf-8")
 assert "cms-labs-simple-task-node:latest" in lab_launcher
 assert "export SDN_LAB_NODE_IMAGE=$node_image" in lab_launcher
 demo_launcher = (ROOT / "scripts" / "demo").read_text(encoding="utf-8")
-assert "oci://ghcr.io/cms-lab-core/cms-labs-clabernetes/clabernetes" in demo_launcher
-assert "globalConfig.deployment.launcher.image" in demo_launcher
+assert "oci://ghcr.io/srl-labs/clabernetes/clabernetes" in demo_launcher
 assert "launcherImage" not in demo_launcher
 assert "clabernetes-launcher:dev-latest" not in demo_launcher
-assert "clabernetes_version=0.8.0-5" in demo_launcher
+assert "clabernetes_version=0.8.0" in demo_launcher
 assert "CMS_LABS_FRONTEND_PORT" in demo_launcher
 node_dockerfile = (LAB / "node" / "Dockerfile").read_text(encoding="utf-8")
 assert "FROM alpine:3.24.2" in node_dockerfile
 assert "FROM alpine:latest" not in node_dockerfile
 yaml_files = sorted(path.name for path in LAB.rglob("*") if path.suffix.lower() in {".yaml", ".yml"})
-assert yaml_files == ["topology.template.yaml"], f"Clabgate would apply unexpected YAML files: {yaml_files}"
+assert yaml_files == ["terminal.template.yaml", "topology.template.yaml"], (
+    f"Clabgate would apply unexpected YAML files: {yaml_files}"
+)
 
 notebook = json.loads((LAB / "task.ipynb").read_text(encoding="utf-8"))
 assert notebook["nbformat"] == 4
