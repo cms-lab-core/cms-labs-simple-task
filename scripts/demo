@@ -14,8 +14,8 @@ kind_version=v0.33.0
 kubectl_version=v1.33.12
 helm_version=v3.19.0
 clabernetes_version=0.9.0
-terminal_chart_version=${CMS_LABS_TERMINAL_CHART_VERSION:-2.0.0}
-capture_chart_version=${CMS_LABS_CAPTURE_CHART_VERSION:-0.1.0}
+terminal_chart_version=${CMS_LABS_TERMINAL_CHART_VERSION:-2.0.1}
+capture_chart_version=${CMS_LABS_CAPTURE_CHART_VERSION:-0.1.1}
 use_local_charts=${CMS_LABS_USE_LOCAL_CHARTS:-false}
 
 install_binary() {

@@ -175,20 +175,36 @@ terminal_page=$(curl --noproxy '*' --fail-with-body --silent --show-error \
   -H "Cookie: clabgate_workspace=$workspace_cookie" "$base_url$terminal_location")
 grep -qi ttyd <<<"$terminal_page" || fail "terminal proxy did not return the ttyd client"
 
+previous_check_id=$(printf '%s' "$session" | jq -r '.result.session.checker.check_id // ""')
 rpc /clabgate/api/v1/rpc session.check \
   "{\"session_id\":\"$attempt_id\"}" "$token" >/dev/null
-checker_success=false
+checker_complete=false
+checker_status=
+checker_id=
 for _ in $(seq 1 120); do
   session=$(rpc /clabgate/api/v1/rpc session.get \
     "{\"session_id\":\"$attempt_id\"}" "$token")
-  checker_success=$(printf '%s' "$session" | jq -r '.result.session.checker_successful // false')
-  if test "$checker_success" = true; then
+  checker_status=$(printf '%s' "$session" | jq -r '.result.session.checker.status // ""')
+  checker_id=$(printf '%s' "$session" | jq -r '.result.session.checker.check_id // ""')
+  if test -n "$checker_id" && test "$checker_id" != "$previous_check_id" && \
+    { test "$checker_status" = passed || test "$checker_status" = failed; } && \
+    printf '%s' "$session" | jq -e '
+      .result.session.checker.max_score > 0 and
+      .result.session.checker.current_score >= 0 and
+      .result.session.checker.current_score <= .result.session.checker.max_score and
+      (.result.session.checker.result_display | length) > 0 and
+      (.result.session.checker.report | length) > 0 and
+      (.result.session.checker.logs | length) > 0 and
+      (.result.session.checker.tasks | length) > 0
+    ' >/dev/null; then
+    checker_complete=true
     break
   fi
   sleep 3
 done
-test "$checker_success" = true || fail "checker job did not finish successfully"
+test "$checker_complete" = true || fail "checker did not return a structured result"
 
-printf 'full demo passed: session=%s ttyd=%s capture-targets=%s pcap=%s jupyter=%s checker=%s\n' \
+printf 'full demo passed: session=%s ttyd=%s capture-targets=%s pcap=%s jupyter=%s checker=%s score=%s\n' \
   "$attempt_id" "$(printf '%s' "$topology" | jq '.result.ttyd | length')" \
-  "$(printf '%s' "$capture_targets" | jq '.targets | length')" "$capture_id" "$workspace_status" "$checker_success"
+  "$(printf '%s' "$capture_targets" | jq '.targets | length')" "$capture_id" "$workspace_status" \
+  "$checker_status" "$(printf '%s' "$session" | jq -r '.result.session.checker.result_display')"

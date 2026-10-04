@@ -14,6 +14,6 @@ data:
       maxDuration: 60s
       maxBytes: 52428800
       maxPackets: 100000
-      maxSnaplen: 262144
+      maxSnapLength: 262144
     storage:
       retention: 10m

@@ -96,6 +96,7 @@ assert "name: cms-labs-capture-config" in capture_template
 assert 'cms-labs.io/capture-config: "true"' in capture_template
 assert "maxConcurrent: 2" in capture_template
 assert "maxDuration: 60s" in capture_template
+assert "maxSnapLength: 262144" in capture_template
 assert "kind: Deployment" not in capture_template
 lab_launcher = (ROOT / "scripts" / "lab").read_text(encoding="utf-8")
 assert "cms-labs-simple-task-node:latest" in lab_launcher
@@ -106,9 +107,9 @@ assert "launcherImage" not in demo_launcher
 assert "clabernetes-launcher:dev-latest" not in demo_launcher
 assert "clabernetes_version=0.9.0" in demo_launcher
 assert "oci://ghcr.io/cms-lab-core/charts/cms-labs-terminal" in demo_launcher
-assert "terminal_chart_version=${CMS_LABS_TERMINAL_CHART_VERSION:-2.0.0}" in demo_launcher
+assert "terminal_chart_version=${CMS_LABS_TERMINAL_CHART_VERSION:-2.0.1}" in demo_launcher
 assert "oci://ghcr.io/maintainer64/charts/cms-labs-capture" in demo_launcher
-assert "capture_chart_version=${CMS_LABS_CAPTURE_CHART_VERSION:-0.1.0}" in demo_launcher
+assert "capture_chart_version=${CMS_LABS_CAPTURE_CHART_VERSION:-0.1.1}" in demo_launcher
 assert "CMS_LABS_USE_LOCAL_CHARTS" in demo_launcher
 assert "install_lab_controllers" in demo_launcher
 assert "CMS_LABS_FRONTEND_PORT" in demo_launcher
