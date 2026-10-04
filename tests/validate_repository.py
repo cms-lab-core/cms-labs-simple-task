@@ -124,9 +124,16 @@ assert yaml_files == ["capture.template.yaml", "terminal.template.yaml", "topolo
 notebook = json.loads((LAB / "task.ipynb").read_text(encoding="utf-8"))
 assert notebook["nbformat"] == 4
 assert any("Пример задания" in "".join(cell["source"]) for cell in notebook["cells"])
+notebook_source = "\n".join("".join(cell["source"]) for cell in notebook["cells"])
+assert "%%capture_traffic r1:eth1" in notebook_source
+assert "%view_traffic captures/icmp.pcap" in notebook_source
 for index, cell in enumerate(notebook["cells"]):
     if cell["cell_type"] == "code":
-        ast.parse("".join(cell["source"]), filename=f"task.ipynb:cell-{index}")
+        source = "".join(cell["source"])
+        if source.lstrip().startswith("%%"):
+            source = source.split("\n", 1)[1] if "\n" in source else ""
+        source = "\n".join(line for line in source.splitlines() if not line.lstrip().startswith("%"))
+        ast.parse(source, filename=f"task.ipynb:cell-{index}")
 
 ast.parse((LAB / "node" / "lab_agent.py").read_text(encoding="utf-8"), filename="lab_agent.py")
 
