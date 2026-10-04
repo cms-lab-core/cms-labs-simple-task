@@ -1,0 +1,19 @@
+# The cluster-wide cms-labs-capture controller creates an isolated capture API
+# and temporary PCAP storage inside this attempt namespace.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cms-labs-capture-config
+  namespace: $NAME
+  labels:
+    cms-labs.io/capture-config: "true"
+data:
+  config.yaml: |-
+    limits:
+      maxConcurrent: 2
+      maxDuration: 60s
+      maxBytes: 52428800
+      maxPackets: 100000
+      maxSnaplen: 262144
+    storage:
+      retention: 10m

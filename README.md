@@ -10,6 +10,7 @@
 - Jupyter Notebook с описанием и заданиями;
 - topology для локального Containerlab и шаблон для Clabgate/Clabernetes;
 - отдельный namespace-local `cms-labs-terminal`, не требующий `tmux` или модификации узлов;
+- изолированный capture API для получения ограниченных PCAP через штатный `clabwire`;
 - изолированное окружение сетевых узлов;
 - имя отдельного checker, возвращающего структурированный JSON-отчёт;
 - автоматические проверки репозитория и полного жизненного цикла лаборатории.
@@ -28,11 +29,12 @@ Codespace автоматически запускает:
 - настоящий `cms-labs-api` backend и CMS Labs frontend;
 - две реплики Clabgate;
 - MySQL с demo-пользователем, routing и попыткой;
-- topology из двух узлов и отдельный terminal broker в namespace попытки;
+- установленные один раз cluster controllers для terminal и capture;
+- topology из двух узлов, terminal broker и временный capture runtime в namespace попытки;
 - `ghcr.io/cms-lab-core/cms-labs-jupyter:latest`;
 - `ghcr.io/cms-lab-core/cms-labs-checker:latest` по кнопке проверки.
 
-Наружу публикуется только frontend. Jupyter и terminal Services остаются namespace-local и доступны через авторизованный proxy Clabgate с cookie, ограниченной одной сессией. NetworkPolicy разрешает вход в terminal Pod только из namespace системного proxy.
+Наружу публикуется только frontend. Jupyter, terminal и capture Services остаются namespace-local. Browser-доступ проходит через авторизованный workspace proxy с cookie, ограниченной одной сессией; Jupyter может обращаться к capture API напрямую только внутри namespace своей попытки.
 
 ## Запуск на компьютере
 
@@ -69,12 +71,16 @@ Codespace автоматически запускает:
 Локальный runner воспроизводит те же три артефакта, которые использует production:
 
 - Clabgate читает разрешённые namespaced-ресурсы из `task/*.yaml` и применяет их в namespace попытки;
-- `topology.template.yaml` описывает только topology, а `terminal.template.yaml` независимо и целиком описывает `cms-labs-terminal`, его конфигурацию, RBAC, NetworkPolicy и Services `r1-terminal`/`s1-terminal`;
+- `topology.template.yaml` описывает topology;
+- `terminal.template.yaml` содержит только список узлов и их команд, а установленный Helm-controller создаёт broker, RBAC, NetworkPolicy и Services `r1-terminal`/`s1-terminal`;
+- `capture.template.yaml` только включает capture и задаёт лимиты; второй controller создаёт namespace-local API и временное PCAP-хранилище;
 - Jupyter запускается из общего standalone-образа;
 - `TEST_PATH=sdn_lab_5` выбирает пакет `labs/sdnlab5` в общем checker-образе.
 
 В Codespace используется тот же session-протокол, что и в production. Отличаются только demo-аутентификация и локальная база: Moodle/LTI заменён заранее созданной попыткой `00000000-0000-0000-0000-000000000000`.
 
-Полный контур использует официальный Clabernetes `0.8.0` и `cms-labs-terminal:1.0.0`. Terminal broker подключается к узлам через Kubernetes exec и переживает перезагрузку браузерной вкладки без `tmux` внутри учебного устройства.
+Полный контур использует официальный Clabernetes `0.9.0`. Terminal broker подключается к узлам через Kubernetes exec и переживает перезагрузку браузерной вкладки без `tmux` внутри учебного устройства. Capture runtime вызывает фиксированную bounded-команду Clabernetes без shell и не требует менять образы узлов.
+
+Оба controller chart устанавливаются один раз в `cms-labs-system`. Новая версия terminal или capture обновляется одним Helm upgrade для кластера: YAML каждой лаборатории менять не нужно. По умолчанию demo использует закреплённые OCI-релизы terminal `2.0.0` и capture `0.1.0`; capture публикуется в `ghcr.io/maintainer64`. Для разработки соседних checkout можно явно включить локальные charts через `CMS_LABS_USE_LOCAL_CHARTS=true`. Источник и версию также можно переопределить переменными `CMS_LABS_TERMINAL_CHART[_VERSION]` и `CMS_LABS_CAPTURE_CHART[_VERSION]`.
 
 Файлы `*.template.yaml` являются production-манифестами задания. Clabgate рекурсивно находит только этот суффикс, пропускает ограниченный список namespaced-ресурсов, валидирует весь набор до первой записи и применяет его в namespace попытки. Поэтому demo/CI YAML из других каталогов не попадёт в сессию, локальная topology имеет расширение `.clab`, а метаданные — `.json`.

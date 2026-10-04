@@ -37,7 +37,8 @@ r1 eth1 (10.50.0.1/30) <------> (10.50.0.2/30) eth1 s1
 - `task.ipynb` — описание задания и рабочая тетрадь студента;
 - `topology.clab` — локальный Containerlab/Codespaces; нестандартное расширение не даёт Clabgate применить файл как Kubernetes-манифест;
 - `topology.template.yaml` — production-шаблон Clabernetes;
-- `terminal.template.yaml` — полный независимый deployment-контракт terminal broker: конфигурация целей, RBAC, Services и NetworkPolicy;
+- `terminal.template.yaml` — короткая декларация terminal targets; установленный в кластере controller создаёт broker, RBAC, Services и NetworkPolicy;
+- `capture.template.yaml` — декларация лимитов namespace-local захвата трафика и временного PCAP-хранилища;
 - `node/` — открытый образ учебного Linux-узла;
 - `lab.json` — метаданные обнаружения лаборатории.
 

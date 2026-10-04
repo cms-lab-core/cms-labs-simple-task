@@ -14,6 +14,9 @@ kind_version=v0.33.0
 kubectl_version=v1.33.12
 helm_version=v3.19.0
 clabernetes_version=0.9.0
+terminal_chart_version=${CMS_LABS_TERMINAL_CHART_VERSION:-2.0.0}
+capture_chart_version=${CMS_LABS_CAPTURE_CHART_VERSION:-0.1.0}
+use_local_charts=${CMS_LABS_USE_LOCAL_CHARTS:-false}
 
 install_binary() {
   local name=$1 url=$2 destination="$tool_bin_dir/$1"
@@ -78,6 +81,42 @@ install_clabernetes() {
   kubectl --context "$context" wait --for=condition=Available deployment --all -n c9s --timeout=5m
 }
 
+install_lab_controllers() {
+  local terminal_chart capture_chart
+  terminal_chart=${CMS_LABS_TERMINAL_CHART:-oci://ghcr.io/cms-lab-core/charts/cms-labs-terminal}
+  capture_chart=${CMS_LABS_CAPTURE_CHART:-oci://ghcr.io/maintainer64/charts/cms-labs-capture}
+
+  # Published OCI charts are the default even when sibling source checkouts
+  # exist. Opt in explicitly when developing a controller chart locally.
+  if test "$use_local_charts" = true && test -z "${CMS_LABS_TERMINAL_CHART:-}"; then
+    test -d "$repo_root/../cms-labs-terminal/charts/cms-labs-terminal" || {
+      printf 'Local terminal chart was requested but the sibling repository is missing\n' >&2
+      exit 1
+    }
+    terminal_chart="$repo_root/../cms-labs-terminal/charts/cms-labs-terminal"
+  fi
+  if test "$use_local_charts" = true && test -z "${CMS_LABS_CAPTURE_CHART:-}"; then
+    test -d "$repo_root/../cms-labs-capture/charts/cms-labs-capture" || {
+      printf 'Local capture chart was requested but the sibling repository is missing\n' >&2
+      exit 1
+    }
+    capture_chart="$repo_root/../cms-labs-capture/charts/cms-labs-capture"
+  fi
+
+  local -a terminal_version_args=() capture_version_args=()
+  if [[ "$terminal_chart" = oci://* ]] && test -n "$terminal_chart_version"; then terminal_version_args=(--version "$terminal_chart_version"); fi
+  if [[ "$capture_chart" = oci://* ]] && test -n "$capture_chart_version"; then capture_version_args=(--version "$capture_chart_version"); fi
+
+  helm upgrade --install terminal "$terminal_chart" "${terminal_version_args[@]}" \
+    --namespace "$namespace" --create-namespace --kube-context "$context" \
+    --set controller.proxyNamespace="$namespace" \
+    --wait --timeout 5m
+  helm upgrade --install capture "$capture_chart" "${capture_version_args[@]}" \
+    --namespace "$namespace" --create-namespace --kube-context "$context" \
+    --set controller.proxyNamespace="$namespace" \
+    --wait --timeout 5m
+}
+
 ensure_jwt_secret() {
   if kubectl --context "$context" -n "$namespace" get secret cms-demo-jwt >/dev/null 2>&1; then return; fi
   local key_dir
@@ -93,6 +132,7 @@ up() {
   install_tools
   create_cluster
   install_clabernetes
+  install_lab_controllers
   kubectl --context "$context" apply -f "$repo_root/.cms-labs/base.yaml"
   kubectl --context "$context" -n "$namespace" rollout status deployment/mysql --timeout=5m
   ensure_jwt_secret

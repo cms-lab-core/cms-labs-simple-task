@@ -7,7 +7,8 @@ attempt_id=00000000-0000-0000-0000-000000000000
 cookie_jar=$(mktemp "${TMPDIR:-/tmp}/cms-labs-demo-cookie.XXXXXX")
 response_body=$(mktemp "${TMPDIR:-/tmp}/cms-labs-demo-response.XXXXXX")
 response_headers=$(mktemp "${TMPDIR:-/tmp}/cms-labs-demo-headers.XXXXXX")
-trap 'rm -f "$cookie_jar" "$response_body" "$response_headers"' EXIT HUP INT TERM
+capture_file=$(mktemp "${TMPDIR:-/tmp}/cms-labs-demo-capture.XXXXXX")
+trap 'rm -f "$cookie_jar" "$response_body" "$response_headers" "$capture_file"' EXIT HUP INT TERM
 
 fail() {
   printf 'CMS Labs demo smoke failed: %s\n' "$1" >&2
@@ -74,8 +75,15 @@ done
 test "$(printf '%s' "$session" | jq -r '.result.session.phase')" = ready || \
   fail "session did not become ready"
 
-topology=$(rpc /clabgate/api/v1/rpc topology.get \
-  "{\"session_id\":\"$attempt_id\"}" "$token")
+topology=
+for _ in $(seq 1 30); do
+  topology=$(rpc /clabgate/api/v1/rpc topology.get \
+    "{\"session_id\":\"$attempt_id\"}" "$token")
+  if test "$(printf '%s' "$topology" | jq '.result.ttyd | length')" -eq 2; then
+    break
+  fi
+  sleep 2
+done
 test "$(printf '%s' "$topology" | jq '.result.ttyd | length')" -eq 2 || {
   printf '%s\n' "$topology" >&2
   fail "topology did not expose two ttyd terminals"
@@ -99,6 +107,60 @@ case "$workspace_status" in
   2*|3*) ;;
   *) fail "Jupyter proxy returned $workspace_status" ;;
 esac
+
+capture_targets=
+for _ in $(seq 1 30); do
+  if capture_targets=$(curl --noproxy '*' --fail --silent --show-error \
+    -H "Cookie: clabgate_workspace=$workspace_cookie" \
+    "$base_url/clabgate/workspace/$attempt_id/capture/v1/targets" 2>/dev/null) && \
+    test "$(printf '%s' "$capture_targets" | jq '.targets | length')" -eq 2; then
+    break
+  fi
+  sleep 2
+done
+test "$(printf '%s' "$capture_targets" | jq '.targets | length' 2>/dev/null || printf 0)" -eq 2 || \
+  fail "capture API did not expose two topology nodes"
+
+capture_node=$(printf '%s' "$capture_targets" | jq -er 'first(.targets[] | select(.interfaces | length > 0) | .node)')
+capture_interface=$(printf '%s' "$capture_targets" | jq -er \
+  --arg node "$capture_node" '.targets[] | select(.node == $node) | .interfaces[0]')
+capture_record=$(curl --noproxy '*' --fail-with-body --silent --show-error \
+  -X POST -H 'Content-Type: application/json' \
+  -H "Cookie: clabgate_workspace=$workspace_cookie" \
+  --data "{\"node\":\"$capture_node\",\"interface\":\"$capture_interface\",\"durationSeconds\":3,\"packetLimit\":10,\"maxBytes\":1048576,\"snaplen\":128}" \
+  "$base_url/clabgate/workspace/$attempt_id/capture/v1/captures")
+capture_id=$(printf '%s' "$capture_record" | jq -er '.id')
+capture_state=
+for _ in $(seq 1 20); do
+  capture_record=$(curl --noproxy '*' --fail --silent --show-error \
+    -H "Cookie: clabgate_workspace=$workspace_cookie" \
+    "$base_url/clabgate/workspace/$attempt_id/capture/v1/captures/$capture_id")
+  capture_state=$(printf '%s' "$capture_record" | jq -r '.state')
+  case "$capture_state" in
+    completed|stopped) break ;;
+    failed)
+      printf '%s\n' "$capture_record" >&2
+      fail "capture $capture_id failed"
+      ;;
+  esac
+  sleep 1
+done
+test "$capture_state" = completed || fail "capture $capture_id did not complete"
+curl --noproxy '*' --fail --silent --show-error \
+  -H "Cookie: clabgate_workspace=$workspace_cookie" \
+  --output "$capture_file" \
+  "$base_url/clabgate/workspace/$attempt_id/capture/v1/captures/$capture_id/download"
+test "$(wc -c <"$capture_file" | tr -d ' ')" -ge 24 || fail "downloaded PCAP has no global header"
+pcap_magic=$(od -An -N4 -tx1 "$capture_file" | tr -d ' \n')
+case "$pcap_magic" in
+  d4c3b2a1|a1b2c3d4|4d3cb2a1|a1b23c4d) ;;
+  *) fail "downloaded capture has unexpected PCAP magic $pcap_magic" ;;
+esac
+capture_delete_status=$(curl --noproxy '*' --silent --show-error \
+  -X DELETE -H "Cookie: clabgate_workspace=$workspace_cookie" \
+  --output /dev/null --write-out '%{http_code}' \
+  "$base_url/clabgate/workspace/$attempt_id/capture/v1/captures/$capture_id")
+test "$capture_delete_status" = 204 || fail "capture delete returned $capture_delete_status"
 
 terminal_grant=$(printf '%s' "$topology" | jq -er '.result.ttyd[0].url')
 : >"$response_headers"
@@ -127,6 +189,6 @@ for _ in $(seq 1 120); do
 done
 test "$checker_success" = true || fail "checker job did not finish successfully"
 
-printf 'full demo passed: session=%s ttyd=%s jupyter=%s checker=%s\n' \
+printf 'full demo passed: session=%s ttyd=%s capture-targets=%s pcap=%s jupyter=%s checker=%s\n' \
   "$attempt_id" "$(printf '%s' "$topology" | jq '.result.ttyd | length')" \
-  "$workspace_status" "$checker_success"
+  "$(printf '%s' "$capture_targets" | jq '.targets | length')" "$capture_id" "$workspace_status" "$checker_success"
