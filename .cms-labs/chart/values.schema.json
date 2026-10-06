@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["images", "clabgate", "frontend", "database", "jwt"],
+  "required": ["images", "clabgate", "frontend", "database", "demo", "jwt"],
   "properties": {
     "images": {
       "type": "object",
@@ -29,6 +29,13 @@
     "database": {
       "type": "object",
       "required": ["name", "user", "password"]
+    },
+    "demo": {
+      "type": "object",
+      "required": ["catalog"],
+      "properties": {
+        "catalog": {"type": "string"}
+      }
     },
     "jwt": {
       "type": "object",

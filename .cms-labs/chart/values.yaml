@@ -34,6 +34,12 @@ database:
   user: root
   password: pnetlab
 
+# scripts/demo injects the repository demo-labs.json here with Helm --set-file.
+# Keeping the default empty makes a missing catalog fail explicitly in the
+# template instead of silently seeding the backend's built-in demo record.
+demo:
+  catalog: ""
+
 jwt:
   secretName: cms-demo-jwt
   privateKey: ""

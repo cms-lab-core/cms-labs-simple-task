@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cms-demo-catalog
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cms-labs-dev.labels" . | nindent 4 }}
+data:
+  catalog.json: |
+    {{- required "demo.catalog is required; pass demo-labs.json with --set-file demo.catalog=<path>" .Values.demo.catalog | nindent 4 }}

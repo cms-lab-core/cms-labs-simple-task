@@ -65,7 +65,7 @@ Codespace автоматически запускает:
 |---|---|---|---|---|
 | `task` | `network-lab` | Автоматизация SSH и мониторинг SNMP | Jupyter + Containerlab/Clabernetes | `automatic-checker` |
 
-Описание задания и шаги выполнения находятся в [`task/README.md`](task/README.md). Рабочая тетрадь — [`task.ipynb`](task/task.ipynb), контракт загрузки — [`task/lab.json`](task/lab.json). [`catalog.json`](catalog.json) оставлен как будущий registry шаблонов.
+Описание задания и шаги выполнения находятся в [`task/README.md`](task/README.md). Рабочая тетрадь — [`task.ipynb`](task/task.ipynb), контракт загрузки — [`task/lab.json`](task/lab.json). [`catalog.json`](catalog.json) описывает содержимое репозитория задания, а [`demo-labs.json`](demo-labs.json) основан на готовом seed-шаблоне `cms-labs-urfu/k8s/local-kind/labs.example.json` и использует routing ID встроенной demo-лаборатории. `scripts/demo` передаёт второй файл chart через `--set-file`, seed Job монтирует его из ConfigMap и импортирует командой `--demo <file.json>`. Перед импортом Job создаёт встроенную стабильную demo-попытку, поэтому существующая прямая ссылка продолжает работать. API каталога включается переменной `LAB_CATALOG_ENABLED=true`.
 
 ## Контур задания
 
