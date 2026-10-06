@@ -15,7 +15,7 @@ fail() {
   exit 1
 }
 
-rpc() {
+rpc_try() {
 	local endpoint=$1 method=$2 params=$3 token=${4:-} response http_status
 	local -a headers=(-H 'Content-Type: application/json')
 	if test -n "$token"; then
@@ -25,21 +25,26 @@ rpc() {
 		"${headers[@]}" \
 		--data "{\"jsonrpc\":\"2.0\",\"id\":\"demo-smoke\",\"method\":\"$method\",\"params\":$params}" \
 		--output "$response_body" --write-out '%{http_code}' "$base_url$endpoint"); then
-		fail "RPC $method could not reach $endpoint"
+		return 1
 	fi
 	response=$(<"$response_body")
 	case "$http_status" in
 		2*) ;;
-		*)
-			printf '%s\n' "$response" >&2
-			fail "RPC $method returned HTTP $http_status"
-			;;
+		*) return 1 ;;
 	esac
-	if printf '%s' "$response" | jq -e '.error != null' >/dev/null; then
-		printf '%s\n' "$response" >&2
-    fail "RPC $method returned an error"
-  fi
-  printf '%s' "$response"
+	if ! printf '%s' "$response" | jq -e '.error == null' >/dev/null 2>&1; then
+		return 1
+	fi
+	printf '%s' "$response"
+}
+
+rpc() {
+	local endpoint=$1 method=$2 params=$3 token=${4:-} response
+	if ! response=$(rpc_try "$endpoint" "$method" "$params" "$token"); then
+		if test -s "$response_body"; then cat "$response_body" >&2; fi
+		fail "RPC $method failed"
+	fi
+	printf '%s' "$response"
 }
 
 for _ in $(seq 1 120); do
@@ -51,8 +56,18 @@ done
 curl --noproxy '*' --fail --silent --output /dev/null "$base_url/session/$attempt_id" || \
   fail "frontend did not become reachable"
 
-login=$(rpc /api/v1/rpc user.login \
-  '{"email":"admin@admin.com","password":"admin","provider_id":0}')
+login=
+for _ in $(seq 1 60); do
+  if login=$(rpc_try /api/v1/rpc user.login \
+    '{"email":"admin@admin.com","password":"admin","provider_id":0}'); then
+    break
+  fi
+  sleep 2
+done
+test -n "$login" || {
+  if test -s "$response_body"; then cat "$response_body" >&2; fi
+  fail "backend login RPC did not become ready"
+}
 token=$(printf '%s' "$login" | jq -er '.result.access_token')
 
 rpc /clabgate/api/v1/rpc session.ensure \

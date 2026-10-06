@@ -86,6 +86,17 @@ deployments:
 
   backend:
     extraSelectorLabels: {app.kubernetes.io/component: backend}
+    initContainers:
+      - name: wait-for-mysql
+        image: mysql
+        imageTag: latest
+        imagePullPolicy: Always
+        command: [/bin/sh, -ec]
+        args:
+          - until mysqladmin ping --silent -h mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD"; do sleep 2; done
+        env:
+          - {name: MYSQL_USER, value: root}
+          - {name: MYSQL_PASSWORD, value: pnetlab}
     containers:
       - name: backend
         image: ghcr.io/cms-lab-core/cms-labs-api/backend
@@ -167,7 +178,9 @@ deployments:
           - {name: CLABGATE_SERVICE, value: "http://clabgate:80"}
           - {name: SSL_CONF, value: ""}
         readinessProbe:
-          httpGet: {path: /, port: http}
+          # A static frontend page can be healthy while nginx still returns 502
+          # for every API call. Gate readiness on the proxied backend instead.
+          httpGet: {path: /api/docs/index.html, port: http}
           initialDelaySeconds: 3
           periodSeconds: 3
         resources:
