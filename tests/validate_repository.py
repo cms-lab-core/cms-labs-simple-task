@@ -18,9 +18,14 @@ required = [
     ROOT / "scripts" / "demo",
     ROOT / "scripts" / "demo-smoke",
     ROOT / ".cms-labs" / "kind.yaml",
-    ROOT / ".cms-labs" / "base.yaml",
-    ROOT / ".cms-labs" / "seed.yaml",
-    ROOT / ".cms-labs" / "app.yaml",
+    ROOT / ".cms-labs" / "chart" / "Chart.yaml",
+    ROOT / ".cms-labs" / "chart" / "values.yaml",
+    ROOT / ".cms-labs" / "chart" / "values.schema.json",
+    ROOT / ".cms-labs" / "chart" / "templates" / "backend.yaml",
+    ROOT / ".cms-labs" / "chart" / "templates" / "clabgate.yaml",
+    ROOT / ".cms-labs" / "chart" / "templates" / "frontend.yaml",
+    ROOT / ".cms-labs" / "chart" / "templates" / "mysql.yaml",
+    ROOT / ".cms-labs" / "chart" / "templates" / "seed-job.yaml",
     LAB / "README.md",
     LAB / "task.ipynb",
     LAB / "lab.json",
@@ -65,14 +70,20 @@ assert metadata["spec"]["runtime"]["jupyterImage"] == "ghcr.io/cms-lab-core/cms-
 assert metadata["spec"]["runtime"]["checkerImage"] == "ghcr.io/cms-lab-core/cms-labs-checker:latest"
 assert metadata["spec"]["runtime"]["nodeImage"] == "ghcr.io/cms-lab-core/cms-labs-simple-task-node:latest"
 
-app_manifest = (ROOT / ".cms-labs" / "app.yaml").read_text(encoding="utf-8")
-seed_manifest = (ROOT / ".cms-labs" / "seed.yaml").read_text(encoding="utf-8")
+chart_values = (ROOT / ".cms-labs" / "chart" / "values.yaml").read_text(encoding="utf-8")
+clabgate_template = (ROOT / ".cms-labs" / "chart" / "templates" / "clabgate.yaml").read_text(encoding="utf-8")
+seed_template = (ROOT / ".cms-labs" / "chart" / "templates" / "seed-job.yaml").read_text(encoding="utf-8")
 for component in ["backend", "clabgate", "frontend"]:
-    assert f"ghcr.io/cms-lab-core/cms-labs-api/{component}:latest" in app_manifest
-assert "CMS_TASK_BRANCH, value: main" in app_manifest
-assert "ghcr.io/cms-lab-core/cms-labs-jupyter:latest" in app_manifest
-assert "ghcr.io/cms-lab-core/cms-labs-checker:latest" in app_manifest
-assert "ghcr.io/cms-lab-core/cms-labs-api/backend:latest" in seed_manifest
+    assert f"repository: ghcr.io/cms-lab-core/cms-labs-api/{component}" in chart_values
+assert chart_values.count("tag: latest") == 4
+assert "repository: mysql" in chart_values
+assert "taskBranch: main" in chart_values
+assert "ghcr.io/cms-lab-core/cms-labs-jupyter:latest" in chart_values
+assert "ghcr.io/cms-lab-core/cms-labs-checker:latest" in chart_values
+assert "JUPYTER_IMAGE" in clabgate_template and "CHECKER_IMAGE" in clabgate_template
+assert 'helm.sh/hook: post-install,post-upgrade' in seed_template
+for obsolete_manifest in ["app.yaml", "base.yaml", "seed.yaml"]:
+    assert not (ROOT / ".cms-labs" / obsolete_manifest).exists(), f"obsolete manifest remains: {obsolete_manifest}"
 
 topology = (LAB / "topology.clab").read_text(encoding="utf-8")
 template = (LAB / "topology.template.yaml").read_text(encoding="utf-8")
@@ -112,6 +123,10 @@ assert "oci://ghcr.io/maintainer64/charts/cms-labs-capture" in demo_launcher
 assert "capture_chart_version=${CMS_LABS_CAPTURE_CHART_VERSION:-0.1.1}" in demo_launcher
 assert "CMS_LABS_USE_LOCAL_CHARTS" in demo_launcher
 assert "install_lab_controllers" in demo_launcher
+assert 'helm upgrade --install cms-labs-dev "$chart"' in demo_launcher
+assert "install_cms_stack" in demo_launcher
+assert 'apply -f "$repo_root/.cms-labs/' not in demo_launcher
+assert demo_launcher.count("--set image.tag=latest") == 2
 assert "CMS_LABS_FRONTEND_PORT" in demo_launcher
 node_dockerfile = (LAB / "node" / "Dockerfile").read_text(encoding="utf-8")
 assert "FROM alpine:3.24.2" in node_dockerfile

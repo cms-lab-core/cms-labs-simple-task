@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cms-labs-dev
+description: Complete CMS Labs development stack for the simple task
+type: application
+version: 0.1.0
+appVersion: latest

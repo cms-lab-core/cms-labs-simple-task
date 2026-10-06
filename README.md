@@ -26,6 +26,7 @@
 Codespace автоматически запускает:
 
 - локальный kind и официальный Clabernetes;
+- локальный Helm chart `.cms-labs/chart`, устанавливающий весь CMS dev-stack одним release;
 - настоящий `cms-labs-api` backend и CMS Labs frontend;
 - две реплики Clabgate;
 - MySQL с demo-пользователем, routing и попыткой;
@@ -56,7 +57,7 @@ Codespace автоматически запускает:
 
 Если порт `18080` уже занят, задайте другой: `CMS_LABS_FRONTEND_PORT=18081 ./scripts/demo up`.
 
-На Linux с Docker команды можно запускать напрямую. Launcher при необходимости устанавливает закреплённые версии kind, kubectl и Helm. Облегчённый runner `./scripts/lab` оставлен для быстрой разработки checker и topology без CMS frontend.
+На Linux с Docker команды можно запускать напрямую. Launcher при необходимости устанавливает закреплённые версии kind, kubectl и Helm. MySQL, backend, Clabgate deployment, frontend, RBAC, JWT Secret и demo seed устанавливаются одним Helm release `cms-labs-dev`; системные компоненты больше не накатываются отдельными YAML-файлами. Облегчённый runner `./scripts/lab` оставлен для быстрой разработки checker и topology без CMS frontend.
 
 ## Текущая лабораторная работа
 
@@ -81,6 +82,6 @@ Codespace автоматически запускает:
 
 Полный контур использует официальный Clabernetes `0.9.0`. Terminal broker подключается к узлам через Kubernetes exec и переживает перезагрузку браузерной вкладки без `tmux` внутри учебного устройства. Capture runtime вызывает фиксированную bounded-команду Clabernetes без shell и не требует менять образы узлов.
 
-Оба controller chart устанавливаются один раз в `cms-labs-system`. Новая версия terminal или capture обновляется одним Helm upgrade для кластера: YAML каждой лаборатории менять не нужно. По умолчанию demo использует закреплённые OCI-релизы terminal `2.0.1` и capture `0.1.1`; capture публикуется в `ghcr.io/maintainer64`. Для разработки соседних checkout можно явно включить локальные charts через `CMS_LABS_USE_LOCAL_CHARTS=true`. Источник и версию также можно переопределить переменными `CMS_LABS_TERMINAL_CHART[_VERSION]` и `CMS_LABS_CAPTURE_CHART[_VERSION]`.
+Оба controller chart устанавливаются один раз в `cms-labs-system`. Новая версия terminal или capture обновляется одним Helm upgrade для кластера: YAML каждой лаборатории менять не нужно. Demo закрепляет совместимые версии chart terminal `2.0.1` и capture `0.1.1`, но все CMS Labs образы, включая terminal, capture, backend, frontend, Clabgate, Jupyter и checker, запускает с тегом `latest` и `imagePullPolicy: Always`. Capture публикуется в `ghcr.io/maintainer64`. Для разработки соседних checkout можно явно включить локальные charts через `CMS_LABS_USE_LOCAL_CHARTS=true`. Источник и версию chart также можно переопределить переменными `CMS_LABS_TERMINAL_CHART[_VERSION]` и `CMS_LABS_CAPTURE_CHART[_VERSION]`.
 
 Файлы `*.template.yaml` являются production-манифестами задания. Clabgate рекурсивно находит только этот суффикс, пропускает ограниченный список namespaced-ресурсов, валидирует весь набор до первой записи и применяет его в namespace попытки. Поэтому demo/CI YAML из других каталогов не попадёт в сессию, локальная topology имеет расширение `.clab`, а метаданные — `.json`.

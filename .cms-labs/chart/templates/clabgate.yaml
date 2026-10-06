@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clabgate
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cms-labs-dev.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.clabgate.replicas }}
+  selector:
+    matchLabels:
+      {{- include "cms-labs-dev.selectorLabels" (dict "root" . "component" "clabgate") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cms-labs-dev.selectorLabels" (dict "root" . "component" "clabgate") | nindent 8 }}
+    spec:
+      serviceAccountName: clabgate
+      containers:
+        - name: clabgate
+          image: {{ include "cms-labs-dev.image" .Values.images.clabgate | quote }}
+          imagePullPolicy: {{ .Values.images.clabgate.pullPolicy }}
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: STAGE_STATUS, value: prod}
+            - {name: DEBUG, value: "false"}
+            - {name: SERVER_HOST, value: 0.0.0.0}
+            - {name: SERVER_PORT, value: "8080"}
+            - {name: SERVER_READ_TIMEOUT, value: "60"}
+            - {name: CMS_URL, value: {{ printf "http://backend.%s.svc.cluster.local:5000" .Release.Namespace | quote }}}
+            - {name: CMS_LOGIN, value: demo-kubernetes}
+            - {name: CMS_PASSWORD, value: demo-secret}
+            - {name: CMS_TASK_URL, value: {{ .Values.clabgate.taskRepository | quote }}}
+            - {name: CMS_TASK_BRANCH, value: {{ .Values.clabgate.taskBranch | quote }}}
+            - {name: JUPYTER_IMAGE, value: {{ .Values.clabgate.jupyterImage | quote }}}
+            - {name: JUPYTER_STORAGE_SIZE, value: 1Gi}
+            - {name: WORKSPACE_AUTH_SECRET, value: {{ .Values.clabgate.workspaceAuthSecret | quote }}}
+            - {name: WORKSPACE_GRANT_TTL_SECONDS, value: {{ .Values.clabgate.workspaceGrantTTLSeconds | quote }}}
+            - {name: WORKSPACE_COOKIE_SECURE, value: "false"}
+            - {name: CHECKER_IMAGE, value: {{ .Values.clabgate.checkerImage | quote }}}
+            - {name: WORKSPACE_PROXY_NAMESPACE, value: {{ .Release.Namespace | quote }}}
+            - {name: SESSION_RECONCILE_INTERVAL_SECONDS, value: {{ .Values.clabgate.reconcileIntervalSeconds | quote }}}
+            - name: JWT_SECRET_KEY_PUBLIC
+              valueFrom: {secretKeyRef: {name: {{ .Values.jwt.secretName }}, key: public.pem}}
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - name: POD_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+          readinessProbe:
+            httpGet: {path: /clabgate/api/docs/index.html, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          resources:
+            {{- toYaml .Values.resources.clabgate | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clabgate
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cms-labs-dev.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "cms-labs-dev.selectorLabels" (dict "root" . "component" "clabgate") | nindent 4 }}
+  ports: [{name: http, port: 80, targetPort: http}]
