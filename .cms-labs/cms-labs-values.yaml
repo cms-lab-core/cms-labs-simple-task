@@ -136,7 +136,7 @@ deployments:
           - {name: SERVER_HOST, value: 0.0.0.0}
           - {name: SERVER_PORT, value: "8080"}
           - {name: SERVER_READ_TIMEOUT, value: "60"}
-          - {name: CMS_URL, value: "http://backend:5000"}
+          - {name: CMS_URL, value: "http://backend.{{ .Release.Namespace }}.svc.cluster.local:5000"}
           - {name: CMS_LOGIN, value: demo-kubernetes}
           - {name: CMS_PASSWORD, value: demo-secret}
           - {name: CMS_TASK_URL, value: "https://github.com/cms-lab-core/cms-labs-simple-task"}
@@ -174,13 +174,11 @@ deployments:
           - {name: http, containerPort: 80}
         env:
           - {name: SYSTEM_DNS, value: "10.96.0.10"}
-          - {name: CMS_CORE_SERVICE, value: "http://backend:5000"}
-          - {name: CLABGATE_SERVICE, value: "http://clabgate:80"}
+          - {name: CMS_CORE_SERVICE, value: "http://backend.{{ .Release.Namespace }}.svc.cluster.local:5000"}
+          - {name: CLABGATE_SERVICE, value: "http://clabgate.{{ .Release.Namespace }}.svc.cluster.local:80"}
           - {name: SSL_CONF, value: ""}
         readinessProbe:
-          # A static frontend page can be healthy while nginx still returns 502
-          # for every API call. Gate readiness on the proxied backend instead.
-          httpGet: {path: /api/docs/index.html, port: http}
+          httpGet: {path: /, port: http}
           initialDelaySeconds: 3
           periodSeconds: 3
         resources:
