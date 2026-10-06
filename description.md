@@ -16,7 +16,7 @@ CMS_TASK_URL=https://github.com/cms-lab-core/cms-labs-simple-task
 
 Во всех режимах используется один и тот же notebook и одна и та же topology. Отличается только способ запуска среды.
 
-Codespaces и Dev Container устанавливают локальный CMS Labs dev-stack из Helm chart `.cms-labs/chart`. Chart включает базу, backend, Clabgate deployment, frontend, RBAC, JWT Secret и demo seed; Clabernetes, terminal и capture также устанавливаются как Helm releases. Production-контракт задания в `task/*.template.yaml` при этом остаётся неизменным.
+Codespaces и Dev Container устанавливают локальный CMS Labs dev-stack из опубликованного OCI Helm chart `cms-labs-api/charts/universal-chart`, используя `.cms-labs/cms-labs-values.yaml`. Release включает базу, backend, Clabgate deployment, frontend, RBAC, JWT Secret и demo seed; Clabernetes, terminal и capture также устанавливаются как Helm releases. Production-контракт задания в `task/*.template.yaml` при этом остаётся неизменным.
 
 ## Типы
 

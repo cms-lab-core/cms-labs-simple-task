@@ -1,0 +1,257 @@
+releasePrefix: "-"
+
+defaultImageTag: latest
+defaultImagePullPolicy: Always
+
+generic:
+  labels:
+    app.kubernetes.io/part-of: cms-labs
+  usePredefinedAffinity: false
+
+configMaps:
+  cms-demo-backend-env:
+    data:
+      STAGE_STATUS: prod
+      DEBUG: "false"
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: "5000"
+      SERVER_READ_TIMEOUT: "60"
+      DB_TYPE: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: pnetlab
+      DB_NAME: db
+      DB_SSL_MODE: disable
+      DB_MAX_CONNECTIONS: "20"
+      DB_MAX_IDLE_CONNECTIONS: "5"
+      DB_MAX_LIFETIME_CONNECTIONS: "30"
+      DB_TABLE_PREFIX: core_
+      LAB_CATALOG_ENABLED: "true"
+      JWT_SECRET_KEY_EXPIRE_MINUTES_COUNT: "60"
+      JWT_REFRESH_KEY_EXPIRE_HOURS_COUNT: "24"
+      VAULT_ADDR: ""
+      VAULT_TOKEN: ""
+  cms-demo-catalog:
+    data:
+      catalog.json: ""
+
+secrets:
+  cms-demo-jwt:
+    data:
+      private.pem: ""
+      public.pem: ""
+
+services:
+  mysql:
+    extraSelectorLabels: {app.kubernetes.io/component: mysql}
+    ports:
+      - {name: mysql, port: 3306, targetPort: mysql}
+  backend:
+    extraSelectorLabels: {app.kubernetes.io/component: backend}
+    ports:
+      - {name: http, port: 5000, targetPort: http}
+  clabgate:
+    extraSelectorLabels: {app.kubernetes.io/component: clabgate}
+    ports:
+      - {name: http, port: 80, targetPort: http}
+  frontend:
+    type: NodePort
+    extraSelectorLabels: {app.kubernetes.io/component: frontend}
+    ports:
+      - {name: http, port: 80, targetPort: http, nodePort: 30080}
+
+deployments:
+  mysql:
+    extraSelectorLabels: {app.kubernetes.io/component: mysql}
+    containers:
+      - name: mysql
+        image: mysql
+        imageTag: latest
+        imagePullPolicy: Always
+        args: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+        env:
+          - {name: MYSQL_DATABASE, value: db}
+          - {name: MYSQL_ROOT_PASSWORD, value: pnetlab}
+        ports:
+          - {name: mysql, containerPort: 3306}
+        readinessProbe:
+          exec:
+            command: ["mysqladmin", "ping", "-h", "127.0.0.1", "-ppnetlab"]
+          initialDelaySeconds: 10
+          periodSeconds: 3
+        resources:
+          requests: {cpu: 100m, memory: 256Mi}
+          limits: {cpu: "1", memory: 1Gi}
+
+  backend:
+    extraSelectorLabels: {app.kubernetes.io/component: backend}
+    containers:
+      - name: backend
+        image: ghcr.io/cms-lab-core/cms-labs-api/backend
+        imageTag: latest
+        imagePullPolicy: Always
+        envConfigmaps: [cms-demo-backend-env]
+        envsFromSecret:
+          cms-demo-jwt:
+            - {JWT_SECRET_KEY_PRIVATE: private.pem}
+            - {JWT_SECRET_KEY_PUBLIC: public.pem}
+            - {JWT_REFRESH_KEY_PRIVATE: private.pem}
+            - {JWT_REFRESH_KEY_PUBLIC: public.pem}
+        ports:
+          - {name: http, containerPort: 5000}
+        readinessProbe:
+          tcpSocket: {port: http}
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        resources:
+          requests: {cpu: 50m, memory: 96Mi}
+          limits: {cpu: 500m, memory: 384Mi}
+
+  clabgate:
+    replicas: 2
+    serviceAccountName: clabgate
+    extraSelectorLabels: {app.kubernetes.io/component: clabgate}
+    containers:
+      - name: clabgate
+        image: ghcr.io/cms-lab-core/cms-labs-api/clabgate
+        imageTag: latest
+        imagePullPolicy: Always
+        ports:
+          - {name: http, containerPort: 8080}
+        env:
+          - {name: STAGE_STATUS, value: prod}
+          - {name: DEBUG, value: "false"}
+          - {name: SERVER_HOST, value: 0.0.0.0}
+          - {name: SERVER_PORT, value: "8080"}
+          - {name: SERVER_READ_TIMEOUT, value: "60"}
+          - {name: CMS_URL, value: "http://backend:5000"}
+          - {name: CMS_LOGIN, value: demo-kubernetes}
+          - {name: CMS_PASSWORD, value: demo-secret}
+          - {name: CMS_TASK_URL, value: "https://github.com/cms-lab-core/cms-labs-simple-task"}
+          - {name: CMS_TASK_BRANCH, value: main}
+          - {name: JUPYTER_IMAGE, value: "ghcr.io/cms-lab-core/cms-labs-jupyter:latest"}
+          - {name: JUPYTER_STORAGE_SIZE, value: 1Gi}
+          - {name: WORKSPACE_AUTH_SECRET, value: cms-labs-demo-cookie-secret-change-before-production}
+          - {name: WORKSPACE_GRANT_TTL_SECONDS, value: "300"}
+          - {name: WORKSPACE_COOKIE_SECURE, value: "false"}
+          - {name: CHECKER_IMAGE, value: "ghcr.io/cms-lab-core/cms-labs-checker:latest"}
+          - {name: WORKSPACE_PROXY_NAMESPACE, value: "{{ .Release.Namespace }}"}
+          - {name: SESSION_RECONCILE_INTERVAL_SECONDS, value: "3"}
+          - name: JWT_SECRET_KEY_PUBLIC
+            valueFrom: {secretKeyRef: {name: cms-demo-jwt, key: public.pem}}
+          - name: POD_NAME
+            valueFrom: {fieldRef: {fieldPath: metadata.name}}
+          - name: POD_NAMESPACE
+            valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+        readinessProbe:
+          httpGet: {path: /clabgate/api/docs/index.html, port: http}
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+          limits: {cpu: 500m, memory: 256Mi}
+
+  frontend:
+    extraSelectorLabels: {app.kubernetes.io/component: frontend}
+    containers:
+      - name: frontend
+        image: ghcr.io/cms-lab-core/cms-labs-api/frontend
+        imageTag: latest
+        imagePullPolicy: Always
+        ports:
+          - {name: http, containerPort: 80}
+        env:
+          - {name: SYSTEM_DNS, value: "10.96.0.10"}
+          - {name: CMS_CORE_SERVICE, value: "http://backend:5000"}
+          - {name: CLABGATE_SERVICE, value: "http://clabgate:80"}
+          - {name: SSL_CONF, value: ""}
+        readinessProbe:
+          httpGet: {path: /, port: http}
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        resources:
+          requests: {cpu: 20m, memory: 32Mi}
+          limits: {cpu: 250m, memory: 192Mi}
+
+serviceAccount:
+  clabgate:
+    clusterRole:
+      name: clabgate-demo
+      rules:
+        - apiGroups: ["c9s.run"]
+          resources: ["topologies"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+        - apiGroups: ["apps"]
+          resources: ["deployments"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+        - apiGroups: [""]
+          resources: ["namespaces", "pods", "pods/exec", "services", "persistentvolumeclaims", "configmaps", "serviceaccounts"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+        - apiGroups: [""]
+          resources: ["pods/log"]
+          verbs: ["get"]
+        - apiGroups: ["batch"]
+          resources: ["jobs"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+        - apiGroups: ["coordination.k8s.io"]
+          resources: ["leases"]
+          verbs: ["get", "list", "watch", "create", "update", "patch"]
+        - apiGroups: ["rbac.authorization.k8s.io"]
+          resources: ["roles", "rolebindings"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+        - apiGroups: ["networking.k8s.io"]
+          resources: ["networkpolicies"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+
+hooks:
+  cms-demo-seed:
+    kind: post-install,post-upgrade
+    weight: "10"
+    deletePolicy: before-hook-creation,hook-succeeded
+    backoffLimit: 2
+    podLabels:
+      app.kubernetes.io/component: demo-seed
+    initContainers:
+      - name: wait-for-mysql
+        image: mysql
+        imageTag: latest
+        imagePullPolicy: Always
+        command: [/bin/sh, -ec]
+        args:
+          - until mysqladmin ping --silent -h mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD"; do sleep 2; done
+        env:
+          - {name: MYSQL_USER, value: root}
+          - {name: MYSQL_PASSWORD, value: pnetlab}
+      - name: seed-default-attempt
+        image: ghcr.io/cms-lab-core/cms-labs-api/backend
+        imageTag: latest
+        imagePullPolicy: Always
+        args: ["--demo"]
+        envConfigmaps: [cms-demo-backend-env]
+        envsFromSecret:
+          cms-demo-jwt:
+            - {JWT_SECRET_KEY_PRIVATE: private.pem}
+            - {JWT_SECRET_KEY_PUBLIC: public.pem}
+            - {JWT_REFRESH_KEY_PRIVATE: private.pem}
+            - {JWT_REFRESH_KEY_PUBLIC: public.pem}
+    containers:
+      - name: seed
+        image: ghcr.io/cms-lab-core/cms-labs-api/backend
+        imageTag: latest
+        imagePullPolicy: Always
+        # args: ["--demo", "/etc/cms-labs/demo/catalog.json"]
+        args: ["--demo"]
+        envConfigmaps: [cms-demo-backend-env]
+        envsFromSecret:
+          cms-demo-jwt:
+            - {JWT_SECRET_KEY_PRIVATE: private.pem}
+            - {JWT_SECRET_KEY_PUBLIC: public.pem}
+            - {JWT_REFRESH_KEY_PRIVATE: private.pem}
+            - {JWT_REFRESH_KEY_PUBLIC: public.pem}
+        volumeMounts:
+          - {name: demo-catalog, mountPath: /etc/cms-labs/demo, readOnly: true}
+    volumes:
+      - name: demo-catalog
+        type: configMap
+        originalName: cms-demo-catalog
