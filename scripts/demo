@@ -194,14 +194,38 @@ status() {
   kubectl --context "$context" get topology -A
 }
 
+ready() {
+  command -v kind >/dev/null 2>&1 || return 1
+  command -v kubectl >/dev/null 2>&1 || return 1
+  kind get clusters 2>/dev/null | grep -Fxq "$cluster_name" || return 1
+
+  local deployment available
+  for deployment in mysql backend clabgate frontend; do
+    available=$(kubectl --context "$context" -n "$namespace" get "deployment/$deployment" \
+      -o jsonpath='{.status.availableReplicas}' 2>/dev/null || true)
+    [[ "${available:-0}" =~ ^[1-9][0-9]*$ ]] || return 1
+  done
+}
+
+resume() {
+  install_tools
+  if ready; then
+    printf 'CMS Labs demo is already running: http://127.0.0.1:%s/session/%s\n' \
+      "$frontend_port" "$attempt_id"
+    return
+  fi
+  up
+}
+
 down() {
   kind delete cluster --name "$cluster_name"
 }
 
 case "${1:-up}" in
   up|ensure) up ;;
+  resume) resume ;;
   status) status ;;
   down) down ;;
   open) printf 'http://127.0.0.1:%s/session/%s\n' "$frontend_port" "$attempt_id" ;;
-  *) printf 'Usage: %s {up|ensure|status|open|down}\n' "$0" >&2; exit 2 ;;
+  *) printf 'Usage: %s {up|ensure|resume|status|open|down}\n' "$0" >&2; exit 2 ;;
 esac
