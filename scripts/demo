@@ -14,9 +14,11 @@ kind_version=v0.33.0
 kubectl_version=v1.33.12
 helm_version=v3.19.0
 clabernetes_version=0.9.0
-cms_api_chart_version=${CMS_LABS_API_CHART_VERSION:-1.17.1}
-terminal_chart_version=${CMS_LABS_TERMINAL_CHART_VERSION:-2.0.1}
-capture_chart_version=${CMS_LABS_CAPTURE_CHART_VERSION:-0.1.1}
+# Track the newest stable 1.x chart while preventing an automatic major upgrade.
+# Set CMS_LABS_API_CHART_VERSION to an exact version when reproducibility matters.
+cms_api_chart_version=${CMS_LABS_API_CHART_VERSION:-^1.0.0}
+terminal_chart_version=${CMS_LABS_TERMINAL_CHART_VERSION:-^2.0.0}
+capture_chart_version=${CMS_LABS_CAPTURE_CHART_VERSION:-^0.1.0}
 use_local_charts=${CMS_LABS_USE_LOCAL_CHARTS:-false}
 
 install_binary() {
@@ -85,7 +87,7 @@ install_clabernetes() {
 install_lab_controllers() {
   local terminal_chart capture_chart
   terminal_chart=${CMS_LABS_TERMINAL_CHART:-oci://ghcr.io/cms-lab-core/charts/cms-labs-terminal}
-  capture_chart=${CMS_LABS_CAPTURE_CHART:-oci://ghcr.io/maintainer64/charts/cms-labs-capture}
+  capture_chart=${CMS_LABS_CAPTURE_CHART:-oci://ghcr.io/cms-lab-core/charts/cms-labs-capture}
 
   # Published OCI charts are the default even when sibling source checkouts
   # exist. Opt in explicitly when developing a controller chart locally.
