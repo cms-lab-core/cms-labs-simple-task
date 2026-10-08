@@ -19,7 +19,6 @@ clabernetes_version=0.9.0
 cms_api_chart_version=${CMS_LABS_API_CHART_VERSION:-^1.0.0}
 terminal_chart_version=${CMS_LABS_TERMINAL_CHART_VERSION:-^2.0.0}
 capture_chart_version=${CMS_LABS_CAPTURE_CHART_VERSION:-^0.1.0}
-use_local_charts=${CMS_LABS_USE_LOCAL_CHARTS:-false}
 
 install_binary() {
   local name=$1 url=$2 destination="$tool_bin_dir/$1"
@@ -89,22 +88,6 @@ install_lab_controllers() {
   terminal_chart=${CMS_LABS_TERMINAL_CHART:-oci://ghcr.io/cms-lab-core/charts/cms-labs-terminal}
   capture_chart=${CMS_LABS_CAPTURE_CHART:-oci://ghcr.io/cms-lab-core/charts/cms-labs-capture}
 
-  # Published OCI charts are the default even when sibling source checkouts
-  # exist. Opt in explicitly when developing a controller chart locally.
-  if test "$use_local_charts" = true && test -z "${CMS_LABS_TERMINAL_CHART:-}"; then
-    test -d "$repo_root/../cms-labs-terminal/charts/cms-labs-terminal" || {
-      printf 'Local terminal chart was requested but the sibling repository is missing\n' >&2
-      exit 1
-    }
-    terminal_chart="$repo_root/../cms-labs-terminal/charts/cms-labs-terminal"
-  fi
-  if test "$use_local_charts" = true && test -z "${CMS_LABS_CAPTURE_CHART:-}"; then
-    test -d "$repo_root/../cms-labs-capture/charts/cms-labs-capture" || {
-      printf 'Local capture chart was requested but the sibling repository is missing\n' >&2
-      exit 1
-    }
-    capture_chart="$repo_root/../cms-labs-capture/charts/cms-labs-capture"
-  fi
 
   local -a terminal_version_args=() capture_version_args=()
   if [[ "$terminal_chart" = oci://* ]] && test -n "$terminal_chart_version"; then terminal_version_args=(--version "$terminal_chart_version"); fi
@@ -129,13 +112,6 @@ install_cms_stack() {
   local -a helm_command jwt_args
   chart=${CMS_LABS_API_CHART:-oci://ghcr.io/cms-lab-core/cms-labs-api/charts/universal-chart}
 
-  if test "$use_local_charts" = true && test -z "${CMS_LABS_API_CHART:-}"; then
-    test -d "$repo_root/../cms-labs-urfu/k8s/base-chart" || {
-      printf 'Local CMS Labs API chart was requested but the sibling repository is missing\n' >&2
-      exit 1
-    }
-    chart="$repo_root/../cms-labs-urfu/k8s/base-chart"
-  fi
   helm_command=(helm upgrade --install cms-labs-dev "$chart")
   if [[ "$chart" = oci://* ]]; then
     helm_command+=(--version "$cms_api_chart_version")
