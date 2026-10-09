@@ -78,6 +78,9 @@ jobs:
     timeout-minutes: 20
     env:
       SDN_LAB_NODE_IMAGE: cms-labs-simple-task-node:ci
+      # Exercise the coordinated breaking change before its stable release.
+      # Other branches/main continue to test the stable latest image.
+      CHECKER_IMAGE: ${{ github.head_ref == 'fix/checker-stdout-contract' && 'ghcr.io/cms-lab-core/cms-labs-checker:dev-23' || 'ghcr.io/cms-lab-core/cms-labs-checker:latest' }}
     steps:
       - uses: actions/checkout@v7
       - name: Install latest Containerlab

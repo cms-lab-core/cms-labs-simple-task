@@ -93,8 +93,7 @@ check() {
     --env SESSION_NAMESPACE=simple-task \
     --env LAB_PATH=task/task.ipynb \
     --env TEST_PATH=sdn_lab_5 \
-    "$checker_image" \
-    -output -
+    "$checker_image" | python3 "$repo_root/scripts/checker_result.py" decode
 }
 
 reset_lab() {

@@ -8,6 +8,8 @@ for script in .devcontainer/post-create.sh .devcontainer/post-start.sh scripts/d
   bash -n "$script"
 done
 
+python3 -m unittest discover -s tests -p 'test_checker_result.py'
+
 if command -v helm >/dev/null 2>&1; then
   chart=${CMS_LABS_API_CHART:-oci://ghcr.io/cms-lab-core/cms-labs-api/charts/universal-chart}
   chart_version=${CMS_LABS_API_CHART_VERSION:-^1.0.0}

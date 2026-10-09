@@ -69,6 +69,14 @@ Codespace автоматически запускает:
 
 ## Контур задания
 
+Checker передаёт результат только через stdout-протокол
+`CMS_LABS_CHECKER_RESULT_V1`. Команда `./scripts/lab check` декодирует его в
+обычный JSON, поэтому `jq` и локальные команды остаются удобными. Старый
+`-output` и передача отчёта через termination message не поддерживаются.
+Обновляйте checker и Clabgate согласованно; этот launcher требует нового
+контракта. Для checker на Python/Bash есть stdlib-helper
+`python3 scripts/checker_result.py encode < result.json`.
+
 Локальный runner воспроизводит те же три артефакта, которые использует production:
 
 - Clabgate читает разрешённые namespaced-ресурсы из `task/*.yaml` и применяет их в namespace попытки;
